@@ -282,7 +282,7 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
             // Replace driver's transaction handler so that new IObsSystemDatabase handles driver
             var systemFilter = new SystemFilter.Builder()
                 .withUniqueIDs(uid)
-                .includeMembers(true)
+                .withNoParent()
                 .build();
             systemStateDb.getSystemDescStore().selectEntries(systemFilter).forEach(desc ->
                     register(getDriverHandler(desc.getValue().getUniqueIdentifier()).driver));
