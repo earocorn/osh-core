@@ -12,9 +12,9 @@ dependencies {
   testImplementation 'org.jglue.fluent-json:fluent-json:2.0.3'
 }
 
-test {
-  exclude 'org/sensorhub/impl/service/consys/client/*'
-}
+//test {
+//  exclude 'org/sensorhub/impl/service/consys/client/*'
+//}
 
 // add info to OSGI manifest
 osgi {
