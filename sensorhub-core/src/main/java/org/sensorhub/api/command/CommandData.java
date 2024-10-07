@@ -209,7 +209,7 @@ public class CommandData implements ICommandData
         public T build()
         {
             OshAsserts.checkValidInternalID(instance.commandStreamID, "commandStreamID");
-            Asserts.checkNotNull(instance.params, "params");
+            Asserts.checkNotNull(instance.params, "parameters");
             if (instance.issueTime == null)
                 instance.issueTime = Instant.now();
             return super.build();

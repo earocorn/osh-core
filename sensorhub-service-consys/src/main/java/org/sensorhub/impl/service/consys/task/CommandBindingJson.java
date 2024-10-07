@@ -112,7 +112,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
                     cmd.withIssueTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 //else if ("foi".equals(propName))
                 //    obs.withFoi(id)
-                else if ("params".equals(propName))
+                else if ("parameters".equals(propName))
                 {
                     var result = paramsReader.parseNextBlock();
                     cmd.withParams(result);
