@@ -216,7 +216,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
                 }
                 catch (Exception e)
                 {
-                    reportError("Cannot start subsystem " + MsgUtils.moduleString(member), e);
+                    getLogger().error("Cannot start subsystem " + MsgUtils.moduleString(member), e);
                 }
             }
         }
@@ -318,7 +318,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     }
     
     
-    protected String getMemberId(IModule<?> member)
+    protected String getMemberId(IDataProducerModule<?> member)
     {
         return member.getLocalID();
     }
