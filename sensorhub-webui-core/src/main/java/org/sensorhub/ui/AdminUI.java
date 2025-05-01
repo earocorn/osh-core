@@ -22,13 +22,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Collection;
 import java.util.concurrent.Flow.Subscription;
 import javax.servlet.ServletContext;
+
+import com.vaadin.shared.ui.MultiSelectMode;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IDataProducerModule;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
@@ -44,6 +46,7 @@ import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystem;
+import org.sensorhub.impl.sensor.SensorSystemConfig;
 import org.sensorhub.impl.sensor.SensorSystemConfig.SystemMember;
 import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionCallback;
 import org.sensorhub.ui.api.IModuleAdminPanel;
@@ -115,6 +118,8 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     private static final Action STOP_MODULE_ACTION = new Action("Stop", new ThemeResource("icons/disable.gif"));
     private static final Action RESTART_MODULE_ACTION = new Action("Restart", new ThemeResource("icons/refresh.gif"));
     private static final Action REINIT_MODULE_ACTION = new Action("Force Init", new ThemeResource("icons/refresh.gif"));
+    private static final Action SELECT_ALL_MODULES_ACTION = new Action("Select All Modules");
+    private static final Action DESELECT_ALL_MODULES_ACTION = new Action("Deselect All Modules");
     private static final Resource LOGO_ICON = new ThemeResource("icons/osh_logo_small.png");
     private static final String STYLE_LOGO = "logo";
     private static final String PROP_STATE = "state";
@@ -222,7 +227,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         });
         VerticalLayout layout;
         Tab tab;
-        
+
         layout = new VerticalLayout();
         tab = stack.addTab(layout, "Sensors");
         //tab.setIcon(ACC_TAB_ICON);
@@ -298,6 +303,8 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         {
             TreeTable table = (TreeTable)tabLayout.getComponent(0);
             Object itemId = table.getValue();
+            if(itemId instanceof Collection<?>)
+                itemId = ((Collection<Object>)itemId).stream().findFirst().orElse(null);
             if (itemId != null)
             {
                 IModule<?> module = (IModule<?>)table.getItem(itemId).getItemProperty(PROP_MODULE_OBJECT).getValue();
@@ -559,7 +566,17 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         buildModuleList(layout, moduleList, configType);
     }
     
-    
+    protected List<Object> getVisiblySelectedItemIds(TreeTable table)
+    {
+        List<Object> visiblySelectedItemIds = new ArrayList<>();
+        for(var visibleItemId : table.getVisibleItemIds())
+        {
+            if(table.isSelected(visibleItemId))
+                visiblySelectedItemIds.add(visibleItemId);
+        }
+        return visiblySelectedItemIds;
+    }
+
     protected void buildModuleList(VerticalLayout layout, List<IModule<?>> moduleList, final Class<?> configType)
     {
         // create table to display module list
@@ -575,6 +592,11 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         table.setColumnWidth(PROP_STATE, 100);
         table.setColumnHeaderMode(ColumnHeaderMode.HIDDEN);
         layout.addComponent(table);
+
+        // Multiselect functionality
+        table.setMultiSelect(true);
+        table.setMultiSelectMode(MultiSelectMode.DEFAULT);
+
         moduleTables.put(configType, table);
         
         // add modules info as table items
@@ -717,6 +739,12 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                 }
                 else
                     actions.add(ADD_MODULE_ACTION);
+
+                if(!table.getVisibleItemIds().isEmpty())
+                {
+                    actions.add(SELECT_ALL_MODULES_ACTION);
+                    actions.add(DESELECT_ALL_MODULES_ACTION);
+                }
                 
                 return actions.toArray(new Action[0]);
             }
@@ -724,18 +752,19 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
             @Override
             public void handleAction(final Action action, Object sender, Object target)
             {
-                // retrieve selected module if any
-                final Item selectedItem;
-                final IModule<?> selectedModule;
-                if (target != null)
+                // retrieve multi-selected modules
+                final List<IModule<?>> selectedModules = new ArrayList<>();
+
+                final List<Object> selectedItemIds = getVisiblySelectedItemIds(table);
+
+                // When using multi-select, retrieve all selected modules
+                if(target != null && !getVisiblySelectedItemIds(table).isEmpty())
                 {
-                    selectedItem = table.getItem(target);
-                    selectedModule = (IModule<?>)selectedItem.getItemProperty(PROP_MODULE_OBJECT).getValue();
-                }
-                else
-                {
-                    selectedItem = null;
-                    selectedModule = null;
+                    for(var itemId : selectedItemIds)
+                    {
+                        var item = table.getItem(itemId);
+                        selectedModules.add((IModule<?>)item.getItemProperty(PROP_MODULE_OBJECT).getValue());
+                    }
                 }
                 
                 if (action == ADD_MODULE_ACTION)
@@ -764,6 +793,10 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                 // it will be loaded when the LOADED event is received
                                 
                                 moduleAddedFromUI = module;
+
+                                // unselect other items after adding a new one, so that only the new item is selected
+                                for(var itemId : selectedItemIds)
+                                    table.unselect(itemId);
                             }
                             catch (NoClassDefFoundError e)
                             {
@@ -778,13 +811,24 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                     popup.setModal(true);
                     addWindow(popup);
                 }
-                
-                else if (selectedModule != null)
+
+                else if (action == SELECT_ALL_MODULES_ACTION)
                 {
-                    // possible actions when a module is selected
-                    final String moduleId = (String)target;
-                    final String moduleName = (String)selectedItem.getItemProperty(PROP_NAME).getValue();
-                    
+                    for(var itemId : table.getVisibleItemIds())
+                        table.select(itemId);
+                }
+
+                else if (action == DESELECT_ALL_MODULES_ACTION)
+                {
+                    for(var itemId : table.getVisibleItemIds())
+                        table.unselect(itemId);
+                    selectNone(table);
+                }
+
+                // Module actions supporting multiselect
+                else if (!selectedModules.isEmpty())
+                {
+                    // possible actions when a module or modules are selected
                     if (action == REMOVE_MODULE_ACTION)
                     {
                         // security check
@@ -793,44 +837,74 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_remove.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove module " + moduleName + "?</br>All settings will be lost.");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove " + selectedModules.size() + " module(s)?</br>All settings will be lost.");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        moduleRegistry.destroyModule(moduleId);
-                                        
-                                        table.removeItem(moduleId);
-                                        selectNone(table);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("Error removing module", ex);
+                                        try
+                                        {
+                                            // Parent handles submodule destruction, so error would be thrown if we try to destroy it ourselves. REMOVE_SUBMODULE_ACTION is for submodules
+                                            if(module instanceof ISystemDriver && ((ISystemDriver) module).getParentSystem() != null)
+                                            {
+                                                // Only remove submodule from UI if parent is also being removed
+                                                if(selectedModules.contains((IModule<?>) ((ISystemDriver) module).getParentSystem()))
+                                                {
+                                                    // Only remove from UI
+                                                    table.removeItem(module.getLocalID());
+                                                }
+                                                continue;
+                                            }
+
+                                            if(table.hasChildren(module.getLocalID()))
+                                            {
+                                                // Remove children of parent, so children are not moved to top level when parent is removed
+                                                for(var childId : table.getChildren(module.getLocalID()))
+                                                    table.removeItem(childId);
+                                            }
+
+                                            // TODO dont allow REMOVE_MODULE to remove submodules, let parents remove submodules
+                                            if(table.getParent(module.getLocalID()) == null)
+                                            {
+                                                moduleRegistry.destroyModule(module.getLocalID());
+                                                table.removeItem(module.getLocalID());
+                                            }
+                                            selectNone(table);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup(module.getName() + " could not be removed", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
-                    
-                    else if (action == ADD_SUBMODULE_ACTION)
+                    else if (action == ADD_SUBMODULE_ACTION && selectedModules.size() == 1)
                     {
-                     // security check
+                        var selectedModule = selectedModules.get(0);
+                        var moduleId = selectedModule.getLocalID();
+
+                        // security check
                         if (!securityHandler.hasPermission(securityHandler.module_add))
                         {
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_add.getErrorMessage());
                             return;
                         }
-                        
+
                         // show popup to select among available module types
                         ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(ISystemDriver.class, new ModuleTypeSelectionCallback() {
                             @Override
@@ -840,12 +914,12 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                 {
                                     // log action
                                     logAction(action, config.moduleClass);
-                                    
+
                                     var newMember = new SystemMember();
                                     newMember.config = (ModuleConfig)config;
-                                    
+
                                     var newModule = ((SensorSystem)selectedModule).addSubsystem(newMember);
-                                    
+
                                     var memberId = newModule.getLocalID();
                                     //table.addItem(new Object[] {newModule.getName(), newModule.getCurrentState(), newModule}, memberID);
                                     Item newItem = table.addItem(memberId);
@@ -854,9 +928,11 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                     newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(newModule);
                                     table.setParent(memberId, moduleId);
                                     table.setChildrenAllowed(memberId, false);
-                                    
+
                                     selectModule(newModule, table);
                                     moduleAddedFromUI = newModule;
+                                    // Need to unselect parent because of multiselect
+                                    table.unselect(moduleId);
                                 }
                                 catch (Exception e)
                                 {
@@ -867,7 +943,6 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                         popup.setModal(true);
                         addWindow(popup);
                     }
-                    
                     else if (action == REMOVE_SUBMODULE_ACTION)
                     {
                         // security check
@@ -876,38 +951,43 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_remove.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove module " + moduleName + "?</br>All settings will be lost.");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove " + selectedModules.size() + " module(s)?</br>All settings will be lost.");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        // get parent module
-                                        var parentId = table.getParent(moduleId);
-                                        var parentModule = (SensorSystem)table.getItem(parentId).getItemProperty(PROP_MODULE_OBJECT).getValue();
-                                        parentModule.removeSubSystem(moduleId);
-                                        
-                                        table.removeItem(moduleId);
-                                        selectNone(table);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("Error removing submodule could not be removed", ex);
+                                        try
+                                        {
+                                            // get parent module
+                                            var parentId = table.getParent(module.getLocalID());
+                                            var parentModule = (SensorSystem)table.getItem(parentId).getItemProperty(PROP_MODULE_OBJECT).getValue();
+                                            parentModule.removeSubSystem(module.getLocalID());
+
+                                            table.removeItem(module.getLocalID());
+                                            selectNone(table);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup("Submodule " + module.getName() + " could not be removed", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
-                    
                     else if (action == START_MODULE_ACTION)
                     {
                         // security check
@@ -916,30 +996,46 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_start.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to start module " + moduleName + "?");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to start " + selectedModules.size() + " module(s)?");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try 
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        if (selectedModule != null)
-                                            moduleRegistry.startModuleAsync(selectedModule);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("The module could not be started", ex);
+                                        try
+                                        {
+                                            // If submodule is selected, wait for parent to start before starting
+                                            if (module instanceof ISystemDriver
+                                            && selectedModules.contains((IModule<?>) ((ISystemDriver)module).getParentSystem())
+                                            && !((IModule<?>) ((ISystemDriver)module).getParentSystem()).getCurrentState().equals(ModuleState.STARTED))
+                                            {
+                                                ((IModule<?>) ((ISystemDriver)module).getParentSystem()).waitForState(ModuleState.STARTED, 3000);
+                                                if(!module.isStarted())
+                                                    moduleRegistry.startModuleAsync(module);
+                                            }
+
+                                            if (module != null)
+                                                moduleRegistry.startModuleAsync(module);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup(module.getName() + " could not be started", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
                     else if (action == STOP_MODULE_ACTION)
@@ -950,30 +1046,36 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_stop.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to stop module " + moduleName + "?");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to stop " + selectedModules.size() + " module(s)?");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try 
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        if (selectedModule != null)
-                                            moduleRegistry.stopModuleAsync(selectedModule);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("The module could not be stopped", ex);
+                                        try
+                                        {
+                                            if (module != null)
+                                                moduleRegistry.stopModuleAsync(module);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup(module.getName() + " could not be stopped", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
                     else if (action == RESTART_MODULE_ACTION)
@@ -984,30 +1086,36 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_restart.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to restart module " + moduleName + "?");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to restart " + selectedModules.size() + " module(s)?");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try 
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        if (selectedModule != null)
-                                            moduleRegistry.restartModuleAsync(selectedModule);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("The module could not be restarted", ex);
+                                        try
+                                        {
+                                            if (module != null)
+                                                moduleRegistry.restartModuleAsync(module);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup(module.getName() + " could not be restarted", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
                     else if (action == REINIT_MODULE_ACTION)
@@ -1018,30 +1126,36 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             DisplayUtils.showUnauthorizedAccess(securityHandler.module_init.getErrorMessage());
                             return;
                         }
-                        
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to force re-init module " + moduleName + "?");
+
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to force re-init " + selectedModules.size() + " module(s)?");
                         popup.addCloseListener(new CloseListener() {
                             @Override
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
                                 {
-                                    // log action
-                                    logAction(action, selectedModule);
-                                    
-                                    try 
+                                    // log module actions
+                                    for(var module : selectedModules)
                                     {
-                                        if (selectedModule != null)
-                                            moduleRegistry.initModuleAsync(selectedModule);
+                                        logAction(action, module);
                                     }
-                                    catch (SensorHubException ex)
+
+                                    for(var module : selectedModules)
                                     {
-                                        DisplayUtils.showErrorPopup("The module could not be reinitialized", ex);
+                                        try
+                                        {
+                                            if (module != null)
+                                                moduleRegistry.initModuleAsync(module);
+                                        }
+                                        catch (SensorHubException ex)
+                                        {
+                                            DisplayUtils.showErrorPopup(module.getName() + " could not be reinitialized", ex);
+                                        }
                                     }
                                 }
                             }
                         });
-                        
+
                         addWindow(popup);
                     }
                 }
@@ -1225,6 +1339,27 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             @Override
                             public void run()
                             {
+                                // Add submodule if added NOT from UI
+                                if (config instanceof SensorSystemConfig && module instanceof SensorSystem)
+                                {
+                                    for (var subsystem : ((SensorSystemConfig) config).subsystems)
+                                    {
+                                        // Only add non-existent children
+                                        if(foundTable.getChildren(module.getLocalID()) == null
+                                        || !foundTable.getChildren(module.getLocalID()).contains(subsystem.config.id))
+                                        {
+                                            // Get submodule from parent and add to module table
+                                            IModule<?> member = ((SensorSystem) module).getMembers().get(subsystem.config.id);
+                                            var memberId = member.getLocalID();
+                                            Item newItem = foundTable.addItem(memberId);
+                                            newItem.getItemProperty(PROP_NAME).setValue(member.getName());
+                                            newItem.getItemProperty(PROP_STATE).setValue(member.getCurrentState());
+                                            newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(member);
+                                            foundTable.setParent(memberId, module.getLocalID());
+                                            foundTable.setChildrenAllowed(memberId, false);
+                                        }
+                                    }
+                                }
                                 // update module name
                                 foundItem.getItemProperty(PROP_NAME).setValue(config.name);
                                 push();
