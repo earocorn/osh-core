@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -35,6 +37,7 @@ import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemDriverRegistry;
+import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.database.system.SystemDriverDatabase;
 import org.sensorhub.impl.database.system.SystemDriverDatabaseConfig;
@@ -313,8 +316,12 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
             systemStateDb.getDataStreamStore().removeEntries(dsFilter);
             systemStateDb.getCommandStreamStore().removeEntries(csFilter);
 
-            var count = systemStateDb.getSystemDescStore().removeEntries(sysFilter);
-            if (count > 0)
+            // TODO: Fix removeEntries() as it throws ConcurrentModificationException
+            List<ISystemWithDesc> systemsToRemove = systemStateDb.getSystemDescStore().select(sysFilter).toList();
+            for (var system : systemsToRemove)
+                systemStateDb.getSystemDescStore().remove(system.getUniqueIdentifier());
+
+            if (!systemsToRemove.isEmpty())
                 log.info("Database #{} now handles system(s) {}. Removing all records from state DB", db.getDatabaseNum(), uidPattern);
         }
     }
