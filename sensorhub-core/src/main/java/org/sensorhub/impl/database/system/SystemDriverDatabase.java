@@ -48,7 +48,7 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
     IObsSystemDatabase db;
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
-    
+    Thread heartbeatThread;
     
     @Override
     protected void doStart() throws SensorHubException
@@ -116,7 +116,15 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
             
             if (config.databaseNum != null)
                 getParentHub().getDatabaseRegistry().register(this);
+
+            if (heartbeatThread == null) {
+                heartbeatThread = new Thread(this::heartbeat);
+            }
+            if (!heartbeatThread.isAlive()) {
+                heartbeatThread.start();
+            }
         }
+
     }
     
     
@@ -140,6 +148,11 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
         {
             autoPurgeTimer.cancel();
             autoPurgeTimer = null;
+        }
+
+        if (heartbeatThread != null) {
+            heartbeatThread.interrupt();
+            heartbeatThread = null;
         }
         
         if (db != null && db instanceof IModule<?>)
@@ -238,5 +251,25 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
     public IObsSystemDatabase getWrappedDatabase()
     {
         return db;
+    }
+
+    private void heartbeat() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+
+            // Attempt to restart db if it has closed
+            if (db != null && !db.isOpen()) {
+                try {
+                    getParentHub().getModuleRegistry().restartModuleAsync(this);
+                } catch (SensorHubException e) {
+                    logger.error("Error restarting module", e);
+                }
+            }
+        }
     }
 }
