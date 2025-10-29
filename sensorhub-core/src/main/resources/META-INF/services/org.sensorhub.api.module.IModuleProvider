@@ -5,3 +5,4 @@ org.sensorhub.impl.comm.LocalMessageQueueDescriptor
 org.sensorhub.impl.sensor.SensorSystemDescriptor
 org.sensorhub.impl.processing.SMLProcessDescriptor
 org.sensorhub.impl.security.BasicSecurityRealmDescriptor
+org.sensorhub.impl.service.FileServerDescriptor

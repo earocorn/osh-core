@@ -161,26 +161,6 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 server.addConnector(https);
             }
             
-            // static content
-            ContextHandler fileResourceContext = null;
-            if (config.staticDocsRootUrl != null)
-            {
-                ResourceHandler fileResourceHandler = new ResourceHandler();
-                fileResourceHandler.setEtags(true);
-                
-                fileResourceContext = new ContextHandler();
-                fileResourceContext.setContextPath(config.staticDocsRootUrl);
-                //fileResourceContext.setAllowNullPathInfo(true);
-                fileResourceContext.setHandler(fileResourceHandler);
-                fileResourceContext.setResourceBase(config.staticDocsRootDir);
-
-                //fileResourceContext.clearAliasChecks();
-                //fileResourceContext.addAliasCheck(new SymlinkAllowedResourceAliasChecker(fileResourceContext));
-                
-                handlers.addHandler(fileResourceContext);
-                getLogger().info("Static resources root is " + config.staticDocsRootUrl);
-            }
-            
             // servlets
             if (config.servletsRootUrl != null)
             {
@@ -252,6 +232,32 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 }),"/test");
                 addServletSecurity("/test", false);
             }
+
+//            // static content
+//            ContextHandler fileResourceContext = null;
+//            if (config.staticDocsRootUrl != null)
+//            {
+//                ResourceHandler fileResourceHandler = new ResourceHandler();
+//                fileResourceHandler.setEtags(true);
+//
+//                fileResourceContext = new ContextHandler();
+//                fileResourceContext.setContextPath(config.staticDocsRootUrl);
+//                fileResourceContext.setHandler(fileResourceHandler);
+//                fileResourceContext.setResourceBase(config.staticDocsRootDir);
+//
+//                if (config.staticDocsRequireAuth && jettySecurityHandler != null) {
+//                    ConstraintSecurityHandler fileSecurityHandler = new ConstraintSecurityHandler();
+//                    fileSecurityHandler.setAuthenticator(jettySecurityHandler.getAuthenticator());
+//                    fileSecurityHandler.setLoginService(jettySecurityHandler.getLoginService());
+//                    fileSecurityHandler.setHandler(fileResourceContext);
+//                    addServletSecurity(fileSecurityHandler, config.staticDocsRootUrl, config.staticDocsRequireAuth, Constraint.ANY_AUTH);
+//                    handlers.addHandler(fileSecurityHandler);
+//                } else {
+//                    handlers.addHandler(fileResourceContext);
+//                }
+//
+//                getLogger().info("Static resources root is " + config.staticDocsRootUrl);
+//            }
             
             server.setHandler(handlers);
             
@@ -270,8 +276,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                         xmlConfig.getIdMap().put(OSH_HTTP_CONNECTOR_ID, http);
                     if (https != null)
                         xmlConfig.getIdMap().put(OSH_HTTPS_CONNECTOR_ID, https);
-                    if (fileResourceContext != null)
-                        xmlConfig.getIdMap().put(OSH_STATIC_CONTENT_ID, fileResourceContext);
+//                    if (fileResourceContext != null)
+//                        xmlConfig.getIdMap().put(OSH_STATIC_CONTENT_ID, fileResourceContext);
                     if (servletHandler != null)
                         xmlConfig.getIdMap().put(OSH_SERVLET_HANDLER_ID, servletHandler);
                     
@@ -396,11 +402,15 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     {
         addServletSecurity(pathSpec, requireAuth, Constraint.ANY_AUTH);
     }
-    
-    
+
     public synchronized void addServletSecurity(String pathSpec, boolean requireAuth, String... roles)
     {
         if (jettySecurityHandler != null)
+            addServletSecurity(jettySecurityHandler, pathSpec, requireAuth, roles);
+    }
+
+    public synchronized void addServletSecurity(ConstraintSecurityHandler securityHandler, String pathSpec, boolean requireAuth, String... roles) {
+        if (securityHandler != null)
         {
             Constraint constraint = new Constraint();
             constraint.setRoles(roles);
@@ -410,6 +420,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             cm.setPathSpec(pathSpec);
             cm.setMethodOmissions(SECURITY_EXCLUDED_METHODS); // disable auth on OPTIONS requests (needed for CORS)
             jettySecurityHandler.addConstraintMapping(cm);
+            securityHandler.addConstraintMapping(cm);
         }
     }
 
