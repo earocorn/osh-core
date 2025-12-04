@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.obs;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,12 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+
+import org.geotools.api.filter.Filter;
+import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.filter.Filters;
+import org.geotools.filter.text.cql2.CQL;
+import org.geotools.filter.text.cql2.CQLException;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
@@ -534,6 +541,28 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withRoi(geom)
                 .build());
+        }
+
+        // CQL filter
+        var cqlPredicates = parseMultiValuesArg("filter", queryParams);
+        if (cqlPredicates != null && !cqlPredicates.isEmpty())
+        {
+            var ff = CommonFactoryFinder.getFilterFactory();
+            var cqlFilters = new ArrayList<Filter>();
+            for (var cqlPredicate : cqlPredicates)
+            {
+                try
+                {
+                    var filter = CQL.toFilter(cqlPredicate);
+                    cqlFilters.add(filter);
+                }
+                catch (CQLException e)
+                {
+                    throw new IllegalArgumentException("Invalid CQL2 filter " + cqlPredicate, e);
+                }
+            }
+            if (!cqlFilters.isEmpty())
+                builder.withCQLFilter(Filters.and(ff, cqlFilters));
         }
         
         // limit
