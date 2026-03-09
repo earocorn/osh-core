@@ -28,6 +28,7 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
@@ -60,12 +61,12 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
     final ScheduledExecutorService threadPool;
     
     
-    static class CommandStatusHandlerContextData
+    public static class CommandStatusHandlerContextData
     {
-        BigId streamID;
-        ICommandStreamInfo csInfo;
-        BigId foiId;
-        CommandStreamTransactionHandler csHandler;
+        public BigId streamID;
+        public ICommandStreamInfo csInfo;
+        public BigId foiId;
+        public CommandStreamTransactionHandler csHandler;
     }
     
     
@@ -89,13 +90,19 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
         ctx.setData(contextData);
         
         // try to fetch command stream since it's needed to configure binding
-        var dsID = ctx.getParentID();
-        if (dsID != null)
+        Asserts.checkState(ctx.getParentID() != null);
+        BigId csID = null;
+        if (ctx.getParentRef().type instanceof CommandHandler)
         {
-            var parentType = ctx.getParentRef().type;
-            if (parentType instanceof CommandStreamHandler)
-                contextData.csInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
+            var cmd = db.getCommandStore().get(ctx.getParentID());
+            csID = cmd.getCommandStreamID();
         }
+        else if (ctx.getParentRef().type instanceof CommandStreamHandler)
+            csID = ctx.getParentID();
+        
+        Asserts.checkNotNull(csID, BigId.class);
+        contextData.csInfo = db.getCommandStreamStore().get(new CommandStreamKey(csID));
+        Asserts.checkNotNull(contextData.csInfo, ICommandStreamInfo.class);
         
         if (forReading)
         {
@@ -103,7 +110,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
             Asserts.checkNotNull(contextData.csInfo, ICommandStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
-            contextData.streamID = dsID;
+            contextData.streamID = csID;
             contextData.csHandler = transactionHandler.getCommandStreamHandler(contextData.streamID);
             if (contextData.csHandler == null)
                 throw ServiceErrors.notWritable();
@@ -258,11 +265,24 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
         var cmdIDs = parseResourceIds("commands", queryParams, idEncoders.getCommandIdEncoder());
         if (parent.internalID == null && cmdIDs != null && !cmdIDs.isEmpty())
             builder.withCommands(cmdIDs);
-        
+
+        var reportTimeFilterBuilder = new TemporalFilter.Builder();
+
         // reportTime param
-        var issueTime = parseTimeStampArg("reportTime", queryParams);
+        var issueTime = parseTimeStampArgToBuilder("reportTime", queryParams);
         if (issueTime != null)
-            builder.withReportTime(issueTime);
+            reportTimeFilterBuilder = issueTime;
+
+        // chronological order. attach to reportTime filter
+        var descendingOrder = getSingleParam("order", queryParams);
+        if (descendingOrder != null && !descendingOrder.isBlank()
+                && ("desc".equals(descendingOrder) || "descending".equals(descendingOrder)))
+        {
+            reportTimeFilterBuilder.descendingOrder(true);
+        }
+
+        if (issueTime != null || descendingOrder != null)
+            builder.withReportTime(reportTimeFilterBuilder.build());
         
         // executionTime param
         var execTime = parseTimeStampArg("executionTime", queryParams);
