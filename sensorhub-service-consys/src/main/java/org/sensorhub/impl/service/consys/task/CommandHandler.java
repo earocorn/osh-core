@@ -33,6 +33,7 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -73,7 +74,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     public static class CommandHandlerContextData
     {
         public BigId streamID;
-        public ICommandStreamInfo dsInfo;
+        public ICommandStreamInfo csInfo;
         public BigId foiId;
         public CommandStreamTransactionHandler dsHandler;
     }
@@ -125,12 +126,12 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         // try to fetch command stream since it's needed to configure binding
         var dsID = ctx.getParentID();
         if (dsID != null)
-            contextData.dsInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
+            contextData.csInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
                 
         if (forReading)
         {
             // when ingesting commands, datastream should be known at this stage
-            Asserts.checkNotNull(contextData.dsInfo, ICommandStreamInfo.class);
+            Asserts.checkNotNull(contextData.csInfo, ICommandStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
             contextData.streamID = dsID;
@@ -216,7 +217,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             });*/
         
         // init event to obs converter
-        var dsInfo = ((CommandHandlerContextData)ctx.getData()).dsInfo;
+        var dsInfo = ((CommandHandlerContextData)ctx.getData()).csInfo;
         var streamHandler = ctx.getStreamHandler();
         
         // create subscriber
@@ -307,11 +308,24 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         // filter on parent if needed
         if (parent.internalID != null)
             builder.withCommandStreams(parent.internalID);
-        
+
+        var issueTimeFilterBuilder = new TemporalFilter.Builder();
+
         // issueTime param
-        var issueTime = parseTimeStampArg("issueTime", queryParams);
+        var issueTime = parseTimeStampArgToBuilder("issueTime", queryParams);
         if (issueTime != null)
-            builder.withIssueTime(issueTime);
+            issueTimeFilterBuilder = issueTime;
+
+        // chronological order, attached to issueTime filter
+        var descendingOrder = getSingleParam("order", queryParams);
+        if (descendingOrder != null && !descendingOrder.isBlank()
+        && ("desc".equals(descendingOrder) || "descending".equals(descendingOrder)))
+        {
+            issueTimeFilterBuilder.descendingOrder(true);
+        }
+
+        if (issueTime != null || descendingOrder != null)
+            builder.withIssueTime(issueTimeFilterBuilder.build());
         
         // status filter params
         var statusCodes = parseMultiValuesArg("statusCode", queryParams);
@@ -387,23 +401,10 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
                 // serialize status info we received in response
                 if (ctx.getOutputStream() != null)
                 {
-                    if (status.getResult() != null)
-                    {
-                        // if there is a result, just write the result
-                        var resultHandler = (CommandResultHandler)subResources.get(CommandResultHandler.NAMES[0]);
-                        var resultBinding = resultHandler.getBinding(ctx, false);
-                        resultBinding.startCollection();
-                        resultBinding.serialize(null, status, false);
-                        resultBinding.endCollection(null);
-                    }
-                    else
-                    {
-                        // else write the complete status report
-                        var statusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
-                        ctx.setResponseFormat(ResourceFormat.JSON);
-                        var statusBinding = statusHandler.getBinding(ctx, false);
-                        statusBinding.serialize(null, status, false);
-                    }
+                    var statusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
+                    ctx.setResponseFormat(ResourceFormat.JSON);
+                    var statusBinding = statusHandler.getBinding(ctx, false);
+                    statusBinding.serialize(null, status, false);
                 }
                 
                 return status.getCommandID();
