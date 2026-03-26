@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.obs;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,12 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+
+import org.geotools.api.filter.Filter;
+import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.filter.Filters;
+import org.geotools.filter.text.cql2.CQL;
+import org.geotools.filter.text.cql2.CQLException;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
@@ -34,6 +41,7 @@ import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -477,12 +485,26 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         // filter on parent if needed
         if (parent.internalID != null)
             builder.withDataStreams(parent.internalID);
-        
+
+        // TODO attach to phenomenonTime
+        var phenomenonTimeFilterBuilder = new TemporalFilter.Builder();
+
         // phenomenonTime param
-        var phenomenonTime = parseTimeStampArg("phenomenonTime", queryParams);
+        var phenomenonTime = parseTimeStampArgToBuilder("phenomenonTime", queryParams);
         if (phenomenonTime != null)
-            builder.withPhenomenonTime(phenomenonTime);
-        
+            phenomenonTimeFilterBuilder = phenomenonTime;
+
+        // chronological order, attached to phenomenonTime filter
+        var descendingOrder = getSingleParam("order", queryParams);
+        if (descendingOrder != null && !descendingOrder.isBlank()
+                && ("desc".equals(descendingOrder) || "descending".equals(descendingOrder)))
+        {
+            phenomenonTimeFilterBuilder.descendingOrder(true);
+        }
+
+        if (phenomenonTime != null || descendingOrder != null)
+            builder.withPhenomenonTime(phenomenonTimeFilterBuilder.build());
+
         // resultTime param
         var resultTime = parseTimeStampArg("resultTime", queryParams);
         if (resultTime != null)
@@ -534,6 +556,28 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withRoi(geom)
                 .build());
+        }
+
+        // CQL filter
+        var cqlPredicates = parseMultiValuesArg("filter", queryParams);
+        if (cqlPredicates != null && !cqlPredicates.isEmpty())
+        {
+            var ff = CommonFactoryFinder.getFilterFactory();
+            var cqlFilters = new ArrayList<Filter>();
+            for (var cqlPredicate : cqlPredicates)
+            {
+                try
+                {
+                    var filter = CQL.toFilter(cqlPredicate);
+                    cqlFilters.add(filter);
+                }
+                catch (CQLException e)
+                {
+                    throw new IllegalArgumentException("Invalid CQL2 filter " + cqlPredicate, e);
+                }
+            }
+            if (!cqlFilters.isEmpty())
+                builder.withCQLFilter(Filters.and(ff, cqlFilters));
         }
         
         // limit
