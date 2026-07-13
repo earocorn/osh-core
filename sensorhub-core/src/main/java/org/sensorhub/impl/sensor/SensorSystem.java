@@ -57,7 +57,11 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     public static final String AUTO_ID = "auto";
     private static final String URN_PREFIX = "urn:";
     
-    Collection<IDataProducerModule<?>> subsystems = new ArrayList<>();
+    // Both the runtime member list and config.subsystems are mutated copy-on-write
+    // (replace, never modify in place) so concurrent readers — in particular config
+    // deep-clones from the admin UI — always iterate a stable snapshot
+    volatile Collection<IDataProducerModule<?>> subsystems = new ArrayList<>();
+    private final Object subsystemsLock = new Object();
 
 
     @Override
@@ -104,37 +108,51 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
         var module = (IDataProducerModule<?>)loadModule(member.config);
         if (module == null)
             throw new SensorHubException("Error loading module");
-        
-        config.subsystems.add(member);
-        subsystems.add(module);
+
+        synchronized (subsystemsLock)
+        {
+            var newConfigList = new ArrayList<>(config.subsystems);
+            newConfigList.add(member);
+            config.subsystems = newConfigList;
+
+            var newSubsystems = new ArrayList<>(subsystems);
+            newSubsystems.add(module);
+            subsystems = newSubsystems;
+        }
         return module;
     }
-    
-    
+
+
     public void removeSubSystem(String id) throws SensorHubException
     {
         Asserts.checkNotNull(id, "id");
-        
-        // remove from config
-        var it2 = config.subsystems.iterator();
-        while (it2.hasNext())
+
+        IDataProducerModule<?> removedModule = null;
+        synchronized (subsystemsLock)
         {
-            var memberCfg = it2.next();
-            if (id.equals(memberCfg.config.id))
-                it2.remove();
-        }
-        
-        // remove and stop module
-        var it = subsystems.iterator();
-        while (it.hasNext())
-        {
-            var member = it.next();
-            if (id.equals(member.getLocalID()))
+            // remove from config
+            var newConfigList = new ArrayList<>(config.subsystems);
+            newConfigList.removeIf(memberCfg -> id.equals(memberCfg.config.id));
+            config.subsystems = newConfigList;
+
+            // remove module
+            var newSubsystems = new ArrayList<>(subsystems);
+            var it = newSubsystems.iterator();
+            while (it.hasNext())
             {
-                it.remove();
-                member.stop();
+                var member = it.next();
+                if (id.equals(member.getLocalID()))
+                {
+                    it.remove();
+                    removedModule = member;
+                }
             }
+            subsystems = newSubsystems;
         }
+
+        // stop module outside the lock
+        if (removedModule != null)
+            removedModule.stop();
     }
     
     
@@ -274,12 +292,15 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
         super.setConfiguration(config);
 
         // Load all subsystem modules from config
-        subsystems.clear();
+        var newSubsystems = new ArrayList<IDataProducerModule<?>>();
         for (SystemMember member : config.subsystems) {
             var module = (IDataProducerModule<?>) loadModule(member.config);
             if (module != null) {
-                subsystems.add(module);
+                newSubsystems.add(module);
             }
+        }
+        synchronized (subsystemsLock) {
+            subsystems = newSubsystems;
         }
     }
 

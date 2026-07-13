@@ -67,6 +67,7 @@ import com.vaadin.event.Action;
 import com.vaadin.event.Action.Handler;
 import com.vaadin.v7.event.ItemClickEvent;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
+import com.vaadin.server.DefaultErrorHandler;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Resource;
 import com.vaadin.server.ThemeResource;
@@ -190,6 +191,15 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
             }
         };
         VaadinSession.getCurrent().setConverterFactory(converterFactory);
+
+        // log uncaught UI errors and show a concise notification instead of
+        // Vaadin's default raw stack-trace tooltip on the failing component
+        setErrorHandler(errorEvent -> {
+            Throwable t = DefaultErrorHandler.findRelevantThrowable(errorEvent.getThrowable());
+            log.error("Uncaught error in admin UI", t);
+            String msg = t.getClass().getSimpleName() + (t.getMessage() != null ? ": " + t.getMessage() : "");
+            new Notification("Error", msg, Notification.Type.ERROR_MESSAGE).show(getPage());
+        });
 
         // init main panels
         HorizontalSplitPanel splitPanel = new HorizontalSplitPanel();
@@ -1223,7 +1233,28 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     protected void selectModule(IModule<?> module, TreeTable table)
     {
         table.select(module.getLocalID());
-        ModuleConfig config = module.getConfiguration().clone();
+
+        ModuleConfig config;
+        try
+        {
+            config = module.getConfiguration().clone();
+        }
+        catch (RuntimeException e)
+        {
+            // the config may be mutating concurrently (e.g. a sensor system
+            // adding/removing members on its own thread); retry once
+            try
+            {
+                config = module.getConfiguration().clone();
+            }
+            catch (RuntimeException e2)
+            {
+                log.error("Cannot display config of module " + module.getLocalID(), e2);
+                DisplayUtils.showErrorPopup("Module configuration is being modified, please try again", e2);
+                return;
+            }
+        }
+
         MyBeanItem<ModuleConfig> beanItem = new MyBeanItem<>(config);
         openModuleInfo(beanItem, module);
     }
@@ -1350,6 +1381,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                 // Add submodule if added NOT from UI
                                 if (config instanceof SensorSystemConfig && module instanceof SensorSystem)
                                 {
+                                    var members = ((SensorSystem) module).getMembers();
                                     for (var subsystem : ((SensorSystemConfig) config).subsystems)
                                     {
                                         // Only add non-existent children
@@ -1357,7 +1389,9 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                                 || !foundTable.getChildren(module.getLocalID()).contains(subsystem.config.id))
                                         {
                                             // Get submodule from parent and add to module table
-                                            IModule<?> member = ((SensorSystem) module).getMembers().get(subsystem.config.id);
+                                            IModule<?> member = members.get(subsystem.config.id);
+                                            if (member == null)
+                                                continue;
                                             var memberId = member.getLocalID();
                                             Item newItem = foundTable.addItem(memberId);
                                             newItem.getItemProperty(PROP_NAME).setValue(member.getName());
@@ -1365,6 +1399,18 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                             newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(member);
                                             foundTable.setParent(memberId, module.getLocalID());
                                             foundTable.setChildrenAllowed(memberId, false);
+                                        }
+                                    }
+
+                                    // Remove child rows whose module is no longer a member,
+                                    // otherwise stale entries accumulate in the tree
+                                    var children = foundTable.getChildren(module.getLocalID());
+                                    if (children != null)
+                                    {
+                                        for (var childId : new ArrayList<>(children))
+                                        {
+                                            if (!members.containsKey(childId))
+                                                foundTable.removeItem(childId);
                                         }
                                     }
                                 }

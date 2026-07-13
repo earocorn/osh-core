@@ -100,6 +100,11 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         {
             for (var member: ((ISystemGroupDriver<?>)driver).getMembers().values())
             {
+                // members with no UID yet (e.g. process modules not initialized
+                // until their source system is started) register themselves when
+                // they reach the INITIALIZED state
+                if (member.getUniqueIdentifier() == null)
+                    continue;
                 doRegisterMember(member, driver.getCurrentDescription().getValidTime());
             }
         }

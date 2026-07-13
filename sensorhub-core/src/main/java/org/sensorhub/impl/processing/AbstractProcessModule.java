@@ -200,7 +200,8 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
     @Override
     public String getUniqueIdentifier()
     {
-        return processDescription.getUniqueIdentifier();
+        // no UID until the process description is built during init
+        return processDescription != null ? processDescription.getUniqueIdentifier() : null;
     }
 
 
