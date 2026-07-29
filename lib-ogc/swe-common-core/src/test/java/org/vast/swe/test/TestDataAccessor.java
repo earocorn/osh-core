@@ -22,6 +22,7 @@ import org.vast.data.DataBlockMixed;
 import org.vast.data.DataBlockProxy;
 import org.vast.data.IDataAccessor;
 import org.vast.swe.SWEHelper;
+import org.vast.swe.fast.JsonDataWriterGson;
 import net.opengis.swe.v20.Count;
 import net.opengis.swe.v20.DataRecord;
 
@@ -33,24 +34,43 @@ public class TestDataAccessor
         @SweMapping(path="time")
         public Instant getTimeStamp();
         
+        @SweMapping(path="time")
+        public void setTimeStamp(Instant ts);
+        
         @SweMapping(path="temp")
         public double getTemperature();
+        
+        @SweMapping(path="temp")
+        public void setTemperature(double temp);
         
         @SweMapping(path="press")
         public double getPressure();
         
+        @SweMapping(path="press")
+        public void setPressure(double press);
+        
         @SweMapping(path="status")
         public String getStatus();
+        
+        @SweMapping(path="status")
+        public void setStatus(String status);
         
         static DataRecord getSchema()
         {
             var swe = new SWEHelper();
             return swe.createRecord()
-                .addField("time", swe.createTime())
+                .addField("time", swe.createTime().asSamplingTimeIsoUTC())
                 .addField("temp", swe.createQuantity())
                 .addField("press", swe.createQuantity())
                 .addField("status", swe.createCategory())
                 .build();
+        }
+        
+        public static RecordAccessor1 create()
+        {
+            var proxy = DataBlockProxy.generate(getSchema(), RecordAccessor1.class);
+            proxy.wrap(getSchema().createDataBlock());
+            return proxy;
         }
     }
     
@@ -80,6 +100,13 @@ public class TestDataAccessor
                     .withElement("rec", RecordAccessor1.getSchema()))
                 .build();
         }
+        
+        public static RecordAccessor2 create()
+        {
+            var proxy = DataBlockProxy.generate(getSchema(), RecordAccessor2.class);
+            proxy.wrap(getSchema().createDataBlock());
+            return proxy;
+        }
     }
     
     
@@ -107,6 +134,45 @@ public class TestDataAccessor
                     .withSizeComponent(sizeComp)
                     .withElement("token", swe.createText()))
                 .build();
+        }
+        
+        public static RecordAccessor3 create()
+        {
+            var proxy = DataBlockProxy.generate(getSchema(), RecordAccessor3.class);
+            proxy.wrap(getSchema().createDataBlock());
+            return proxy;
+        }
+    }
+    
+    
+    interface RecordAccessor4 extends IDataAccessor
+    {
+        @SweMapping(path="user")
+        public String getUser();
+        
+        @SweMapping(path="user")
+        public void setUser(String user);
+        
+        @SweMapping(path="rec")
+        public RecordAccessor1 getRecord();
+        
+        @SweMapping(path="rec")
+        public void setRecord(RecordAccessor1 rec);
+        
+        static DataRecord getSchema()
+        {
+            var swe = new SWEHelper();
+            return swe.createRecord()
+                .addField("user", swe.createText())
+                .addField("rec", RecordAccessor1.getSchema())
+                .build();
+        }
+        
+        public static RecordAccessor4 create()
+        {
+            var proxy = DataBlockProxy.generate(getSchema(), RecordAccessor4.class);
+            proxy.wrap(getSchema().createDataBlock());
+            return proxy;
         }
     }
     
@@ -180,8 +246,7 @@ public class TestDataAccessor
             r++;
             
             System.out.println(elt.toString());
-        }
-        
+        }        
     }
     
     
@@ -214,8 +279,73 @@ public class TestDataAccessor
             r++;
             
             System.out.println(elt.toString());
-        }
+        }        
+    }
+    
+    
+    @Test
+    public void testReadNestedRecord()
+    {
+        var rec = RecordAccessor4.getSchema();
+        var accessor = DataBlockProxy.generate(rec, RecordAccessor4.class);
         
+        int i = 0;
+        var dblk = rec.createDataBlock();
+        
+        var user = "tom";
+        var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        var temp = 25.6;
+        var press = 1015.23;
+        var status = "OFFLINE";
+        
+        dblk.setStringValue(i++, user);
+        dblk.setTimeStamp(i++, now);
+        dblk.setDoubleValue(i++, temp);
+        dblk.setDoubleValue(i++, press);
+        dblk.setStringValue(i++, status);
+        
+        accessor.wrap(dblk);
+        
+        assertEquals(user, accessor.getUser());
+        var nestedObj = accessor.getRecord();
+        assertEquals(now, nestedObj.getTimeStamp());
+        assertEquals(temp, nestedObj.getTemperature(), 1e-6);  
+        assertEquals(press, nestedObj.getPressure(), 1e-6);
+        assertEquals(status, nestedObj.getStatus());      
+    }
+    
+    
+    @Test
+    public void testWriteNestedRecord() throws Exception
+    {
+        var accessor = RecordAccessor4.create();
+        var nestedAccessor = RecordAccessor1.create();
+        
+        var user = "tom";
+        var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        var temp = 25.6;
+        var press = 1015.23;
+        var status = "OFFLINE";
+        
+        accessor.setUser(user);
+        nestedAccessor.setTimeStamp(now);
+        nestedAccessor.setStatus(status);
+        nestedAccessor.setPressure(press);
+        nestedAccessor.setTemperature(temp);
+        accessor.setRecord(nestedAccessor);
+        
+        assertEquals(user, accessor.getUser());
+        var nestedObj = accessor.getRecord();
+        assertEquals(now, nestedObj.getTimeStamp());
+        assertEquals(temp, nestedObj.getTemperature(), 1e-6);  
+        assertEquals(press, nestedObj.getPressure(), 1e-6);
+        assertEquals(status, nestedObj.getStatus());
+        
+        var writer = new JsonDataWriterGson();
+        writer.setDataComponents(RecordAccessor4.getSchema());
+        writer.setOutput(System.out);
+        writer.write(accessor.getDataBlock());
+        writer.close();
     }
 
 }

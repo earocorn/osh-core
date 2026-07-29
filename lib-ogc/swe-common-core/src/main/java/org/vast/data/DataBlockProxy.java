@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.SimpleComponent;
 
 
 /**
@@ -155,7 +156,7 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
                 return createCollection(itemType, isSimpleType, (DataArray)comp);
             }
             else
-                return getDataValue(retType, data);
+                return getDataValue(retType, comp, data);
         }
         
         else if (isSetNumMethod(method))
@@ -167,10 +168,9 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
         
         else if (isSetMethod(method))
         {
-            var data = comp.getData();
             var argType = method.getParameters()[0].getType();
             var val = args[0];
-            setDataValue(data, argType, val);
+            setDataValue(comp, argType, val);
         }
         
         else if (isAddMethod(method))
@@ -218,7 +218,7 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
     }
     
     
-    protected Object getDataValue(Class<?> retType, DataBlock data)
+    protected Object getDataValue(Class<?> retType, DataComponent comp, DataBlock data)
     {
         if (retType == boolean.class)
             return data.getBooleanValue();
@@ -240,8 +240,32 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
             return data.getTimeStamp();
         else if (retType == OffsetDateTime.class)
             return data.getDateTime();
+        else if (IDataAccessor.class.isAssignableFrom(retType))
+        {
+            @SuppressWarnings("unchecked")
+            var accessorClass = (Class<IDataAccessor>)retType;
+            var obj = createElementProxy(accessorClass, comp);
+            obj.wrap(data);
+            return obj;
+        }
         else
             throw new IllegalStateException("Unsupported datatype: " + retType);
+    }
+    
+    
+    protected void setDataValue(DataComponent comp, Class<?> argType, Object val)
+    {
+        if (comp instanceof SimpleComponent) {
+            setDataValue(comp.getData(), argType, val);
+        }
+        else if (IDataAccessor.class.isAssignableFrom(argType) && argType.isAssignableFrom(val.getClass())) {
+            var newData = ((IDataAccessor)val).getDataBlock();
+            comp.setData(newData);
+            var parent = ((AbstractRecordImpl<?>)comp.getParent());
+            parent.updateDataBlock();
+        }
+        else
+            throw new IllegalStateException("Unsupported datatype: " + argType);
     }
     
     
@@ -375,7 +399,7 @@ public class DataBlockProxy implements IDataAccessor, InvocationHandler
                             return accessor;
                         }
                         else {
-                            return getDataValue(clazz, elt.getData());
+                            return getDataValue(clazz, elt, elt.getData());
                         }
                     }
                 };
