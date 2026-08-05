@@ -110,6 +110,38 @@ public class MVObsStoreImpl implements IObsStore
             }
         }
     }
+
+
+    class PostFilterParams
+    {
+        ObsFilter filter;
+        Set<BigId> dataStreamIDs;
+        Set<BigId> foiIDs;
+
+
+        PostFilterParams(ObsFilter filter)
+        {
+            this.filter = filter;
+
+            if (filter.getDataStreamFilter() != null)
+                this.dataStreamIDs = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
+                    .collect(Collectors.toSet());
+
+            if (filter.getFoiFilter() != null)
+                this.foiIDs = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
+                    .collect(Collectors.toSet());
+        }
+
+
+        boolean test(IObsData obs)
+        {
+            return (dataStreamIDs == null || dataStreamIDs.contains(obs.getDataStreamID())) &&
+                   (foiIDs == null || foiIDs.contains(obs.getFoiID())) &&
+                   filter.testPhenomenonTime(obs) &&
+                   filter.testResultTime(obs) &&
+                   filter.testValuePredicate(obs);
+        }
+    }
     
     
     private MVObsStoreImpl()
@@ -213,7 +245,7 @@ public class MVObsStoreImpl implements IObsStore
             MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
             MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
             if (lastKey == null || lastKey.dataStreamID != dataStreamID)
-                return null;
+                return Stream.empty();
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
@@ -227,6 +259,8 @@ public class MVObsStoreImpl implements IObsStore
             .filter(e -> {
                 // filter out series with result time not matching filter
                 // but always select series that have multiple result times (e.g. result time = phenomenonTime)
+                if (e.getKey().dataStreamID != dataStreamID)
+                    return false;
                 var resultTime = e.getKey().resultTime;
                 return resultTime == Instant.MIN || finalResultTimeRange.contains(resultTime);
             })
@@ -260,6 +294,8 @@ public class MVObsStoreImpl implements IObsStore
             .filter(k -> {
                 // filter out series with result time not matching filter
                 // but always select series that have multiple result times (e.g. result time = phenomenonTime)
+                if (k.foiID != foiID)
+                    return false;
                 var resultTime = k.resultTime;
                 return resultTime == Instant.MIN || finalResultTimeRange.contains(resultTime);
             })
@@ -421,12 +457,13 @@ public class MVObsStoreImpl implements IObsStore
                 .map(k -> obsRecordsIndex.getEntry(k))
                 .filter(Objects::nonNull);
             
-            return getPostFilteredResultStream(obsStream, filter);
+            return getPostFilteredResultStream(obsStream, new PostFilterParams(filter));
         }
         
         // select obs series matching the filter
         var timeParams = new TimeParams(filter);
         var numSeries = (int)selectObsSeries(filter, timeParams).count();
+        var postFilterParams = new PostFilterParams(filter);
         
         // if too many series selected, don't try to order by time
         // just get one record per series alternatively
@@ -438,7 +475,7 @@ public class MVObsStoreImpl implements IObsStore
                     return selectObsSeries(filter, timeParams)
                         .flatMap(series -> {
                             var obsStream = getObsStream(series, timeParams);
-                            return getPostFilteredResultStream(obsStream, filter).skip(i).limit(1);
+                            return getPostFilteredResultStream(obsStream, postFilterParams).skip(i).limit(1);
                         }); 
                 })
                 .limit(filter.getLimit());
@@ -454,7 +491,7 @@ public class MVObsStoreImpl implements IObsStore
             // and keep all spliterators in array list
             obsSeries.forEach(series -> {
                 var obsStream = getObsStream(series, timeParams);
-                obsStreams.add(getPostFilteredResultStream(obsStream, filter));
+                obsStreams.add(getPostFilteredResultStream(obsStream, postFilterParams));
             });
             
             if (obsStreams.isEmpty())
@@ -489,10 +526,9 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigId, IObsData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, IObsData>> resultStream, ObsFilter filter)
+    Stream<Entry<BigId, IObsData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, IObsData>> resultStream, PostFilterParams postFilterParams)
     {
-        if (filter.getValuePredicate() != null)
-            resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));
+        resultStream = resultStream.filter(e -> postFilterParams.test(e.getValue()));
         
         // casting is ok since keys are subtypes of BigId
         @SuppressWarnings({ "unchecked" })
@@ -772,7 +808,10 @@ public class MVObsStoreImpl implements IObsStore
         
         // if no predicate or spatial query is used, we can optimize
         // by scanning only observation series
-        if (filter.getValuePredicate() == null && filter.getPhenomenonLocation() == null)
+        if (filter.getValuePredicate() == null &&
+            filter.getPhenomenonLocation() == null &&
+            filter.getDataStreamFilter() == null &&
+            filter.getFoiFilter() == null)
         {
             // special case to count per series
             return selectObsSeries(filter, timeParams)
@@ -955,19 +994,20 @@ public class MVObsStoreImpl implements IObsStore
                 .map(k -> obsRecordsIndex.getEntry(k))
                 .filter(Objects::nonNull);
             
-            return getPostFilteredResultStream(obsStream, filter)
+            return getPostFilteredResultStream(obsStream, new PostFilterParams(filter))
                 .peek(e -> remove(e.getKey()))
                 .count();
         }
         
         // select obs series matching the filter
         var timeParams = new TimeParams(filter);
+        var postFilterParams = new PostFilterParams(filter);
         return selectObsSeries(filter, timeParams)
             .mapToLong(series -> {
                 var obsStream = getObsStream(series, timeParams);
                 
                 // delete all matching record in series
-                var numRemoved = getPostFilteredResultStream(obsStream, filter)
+                var numRemoved = getPostFilteredResultStream(obsStream, postFilterParams)
                     .peek(e -> remove(e.getKey()))
                     .count();
                 

@@ -316,7 +316,8 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             {
                 for (var obs: event.getObservations())
                 {
-                    if (foiIDs == null || foiIDs.contains(obs.getFoiID()))
+                    if (Objects.equal(dsID, obs.getDataStreamID()) &&
+                        (foiIDs == null || foiIDs.contains(obs.getFoiID())))
                         sendObs(obs);
                 }
             }
