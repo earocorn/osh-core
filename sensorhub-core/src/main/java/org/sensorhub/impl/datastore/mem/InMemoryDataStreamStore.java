@@ -214,12 +214,17 @@ public class InMemoryDataStreamStore
         // scan existing datastreams associated to the same system
         for (var key: procDsKeys)
         {
+            // replacing an entry with itself (e.g. metadata update via replace())
+            // must not trip the same-system/output/validTime uniqueness check
+            if (replace && key.equals(dsKey))
+                continue;
+
             var prevDsInfo = map.get(key);
-            
+
             if (prevDsInfo != null &&
                 prevDsInfo.getSystemID().getInternalID() == dsInfo.getSystemID().getInternalID() &&
                 prevDsInfo.getOutputName().equals(dsInfo.getOutputName()))
-            {    
+            {
                 var prevValidTime = prevDsInfo.getValidTime().begin();
                 var newValidTime = dsInfo.getValidTime().begin();
                 

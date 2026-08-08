@@ -97,9 +97,13 @@ public class DataStreamTransactionHandler implements IEventListener
             throw new DataStoreException("The system output (outputName) associated to a datastream cannot be changed");
         
         // check structure hasn't changed if we already have observations
+        // (same acceptance rule as SystemTransactionHandler.addOrUpdateDataStream:
+        // equal structures always pass, otherwise they must be compatible)
         var hasObs = oldDsInfo.getResultTimeRange() != null;
+        var structOk = DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure())
+            || DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure());
         if (hasObs &&
-            (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
+            (!structOk ||
              !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
             throw new DataStoreException("Cannot update the record structure or encoding of a datastream if it already has observations");
         

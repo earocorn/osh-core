@@ -91,11 +91,17 @@ public class CommandStreamTransactionHandler implements IEventListener
             throw new DataStoreException("The system control input (controlInputName) associated to a command stream cannot be changed");
         
         // check if command stream already has commands
+        // (same acceptance rule as SystemTransactionHandler.addOrUpdateCommandStream:
+        // equal structures always pass, otherwise they must be compatible)
         var hasCmd = oldCsInfo.getIssueTimeRange() != null;
+        var paramStructOk = DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure())
+            || DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure());
+        var resultStructOk = DataComponentChecks.checkStructEqualsNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure())
+            || DataComponentChecks.checkStructCompatibleNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure());
         if (hasCmd &&
-            (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
+            (!paramStructOk ||
              !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()) ||
-             !DataComponentChecks.checkStructCompatibleNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure()) ||
+             !resultStructOk ||
              !DataComponentChecks.checkEncodingEqualsNullAllowed(oldCsInfo.getResultEncoding(), csInfo.getResultEncoding())))
             throw new DataStoreException("Cannot update the structure or encoding of a command interface if it already has received commands");
         
