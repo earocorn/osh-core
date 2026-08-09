@@ -387,6 +387,8 @@ public class SystemTransactionHandler
             // if something else has changed, update existing datastream
             else if (!sameRecordStruct || !sameRecordEncoding || !sameName || !sameDescription)
             {
+                log.debug("Updating datastream {}#{} (sameName={}, sameDescription={}, sameRecordStruct={}, sameRecordEncoding={})",
+                    sysUID, outputName, sameName, sameDescription, sameRecordStruct, sameRecordEncoding);
                 var dsHandler = new DataStreamTransactionHandler(dsKey, oldDsInfo, rootHandler);
                 dsHandler.update(dsInfo);
                 dsInfo = dsHandler.getDataStreamInfo();
@@ -518,6 +520,8 @@ public class SystemTransactionHandler
             // if something else has changed, update existing command stream
             else if (!sameParamStruct || !sameParamEncoding || !sameResultStruct || !sameResultEncoding || !sameName || !sameDescription)
             {
+                log.debug("Updating command stream {}#{} (sameName={}, sameDescription={}, sameParamStruct={}, sameParamEncoding={}, sameResultStruct={}, sameResultEncoding={})",
+                    sysUID, commandName, sameName, sameDescription, sameParamStruct, sameParamEncoding, sameResultStruct, sameResultEncoding);
                 var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
                 csHandler.update(csInfo);
                 csInfo = csHandler.getCommandStreamInfo();

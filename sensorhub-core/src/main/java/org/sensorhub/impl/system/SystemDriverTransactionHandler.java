@@ -70,38 +70,62 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
     {
         Asserts.checkNotNull(driver, ISystemDriver.class);
         this.driver = driver;
-        
-        // enable and start listening to driver events
-        enable();
-        driver.registerListener(this);
-        
-        // if data producer, register fois and datastreams
-        if (driver instanceof IDataProducer)
+
+        // on any failure, roll back everything already wired (listeners, datastream
+        // handlers, command receiver subscriptions, members) so a later retry
+        // doesn't hit leftovers like an orphaned command receiver subscription
+        try
         {
-            var dataSource = (IDataProducer)driver;
-            
-            for (var foi: dataSource.getCurrentFeaturesOfInterest().values())
-                doRegister(foi);
-            
-            for (var dataStream: dataSource.getOutputs().values())
-                doRegister(dataStream);
-        }
-        
-        // if command sink, register command streams
-        if (driver instanceof ICommandReceiver)
-        {
-            var taskableSource = (ICommandReceiver)driver;
-            for (var commandStream: taskableSource.getCommandInputs().values())
-                doRegister(commandStream);
-        }
-        
-        // if group, also register members recursively
-        if (driver instanceof ISystemGroupDriver)
-        {
-            for (var member: ((ISystemGroupDriver<?>)driver).getMembers().values())
+            // enable and start listening to driver events
+            enable();
+            driver.registerListener(this);
+
+            // if data producer, register fois and datastreams
+            if (driver instanceof IDataProducer)
             {
-                doRegisterMember(member, driver.getCurrentDescription().getValidTime());
+                var dataSource = (IDataProducer)driver;
+
+                for (var foi: dataSource.getCurrentFeaturesOfInterest().values())
+                    doRegister(foi);
+
+                for (var dataStream: dataSource.getOutputs().values())
+                    doRegister(dataStream);
             }
+
+            // if command sink, register command streams
+            if (driver instanceof ICommandReceiver)
+            {
+                var taskableSource = (ICommandReceiver)driver;
+                for (var commandStream: taskableSource.getCommandInputs().values())
+                    doRegister(commandStream);
+            }
+
+            // if group, also register members recursively
+            if (driver instanceof ISystemGroupDriver)
+            {
+                for (var member: ((ISystemGroupDriver<?>)driver).getMembers().values())
+                {
+                    // members with no UID yet (e.g. process modules not initialized
+                    // until their source system is started) register themselves when
+                    // they reach the INITIALIZED state
+                    if (member.getUniqueIdentifier() == null)
+                        continue;
+                    doRegisterMember(member, driver.getCurrentDescription().getValidTime());
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            try
+            {
+                doUnregister(false);
+            }
+            catch (Throwable e2)
+            {
+                DefaultSystemRegistry.log.error("Error rolling back partial registration of {}", sysUID, e2);
+                e.addSuppressed(e2);
+            }
+            throw e;
         }
 
         if (DefaultSystemRegistry.log.isInfoEnabled())
@@ -117,34 +141,46 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
     }
     
     
-    protected void doUnregister(boolean sendEvents)
+    protected synchronized void doUnregister(boolean sendEvents)
     {
-        driver.unregisterListener(this);
-        
+        // tolerate redundant calls: a member that rolled back its own partial
+        // registration is unregistered again by its parent's cleanup loop
+        var drv = driver;
+        if (drv == null)
+            return;
+        driver = null;
+
+        drv.unregisterListener(this);
+
         // unregister members recursively
         for (var memberHandler: memberHandlers.values())
             memberHandler.doUnregister(sendEvents);
         memberHandlers.clear();
-        
+
         // if data producer, unregister datastreams
-        if (driver instanceof IDataProducer)
+        if (drv instanceof IDataProducer)
         {
-            for (var output: ((IDataProducer)driver).getOutputs().values())
+            for (var output: ((IDataProducer)drv).getOutputs().values())
                 doUnregister(output, sendEvents);
         }
         dataStreamHandlers.clear();
-        
+
         // if taskable system, unregister command streams
-        if (driver instanceof ICommandReceiver)
+        if (drv instanceof ICommandReceiver)
         {
-            for (var input: ((ICommandReceiver)driver).getCommandInputs().values())
+            for (var input: ((ICommandReceiver)drv).getCommandInputs().values())
                 doUnregister(input, sendEvents);
         }
         commandStreamHandlers.clear();
-        
+
+        // cancel any remaining command subscriptions not matched by name above
+        // (e.g. connected before a failure that changed the driver's input list)
+        for (var sub: commandSubscriptions.values())
+            sub.cancel();
+        commandSubscriptions.clear();
+
         if (sendEvents)
             disable();
-        driver = null;
     }
     
     
@@ -263,9 +299,12 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         boolean isNew = true;
         
         // add or update existing datastream entry
+        // use a copy of the record structure so drivers that mutate their live
+        // structure (e.g. variable-size array counts updated as data flows)
+        // can't change it between the compat checks or via store aliasing
         var newDsHandler = addOrUpdateDataStream(
             output.getName(),
-            output.getRecordDescription(),
+            output.getRecordDescription().copy(),
             output.getRecommendedEncoding());
             
         // replace and cleanup old handler
@@ -323,21 +362,25 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         boolean isNew = true;
         
         // add or update existing command stream entry
+        // use copies of the structures for the same reason as in
+        // doRegister(IStreamingDataInterface)
+        var cmdStruct = controlInput.getCommandDescription();
         CommandStreamTransactionHandler newCsHandler;
         if (controlInput instanceof IStreamingControlInterfaceWithResult)
         {
+            var resultStruct = ((IStreamingControlInterfaceWithResult) controlInput).getResultDescription();
             newCsHandler = addOrUpdateCommandStream(
                 controlInput.getName(),
-                controlInput.getCommandDescription(),
+                cmdStruct != null ? cmdStruct.copy() : null,
                 controlInput.getCommandEncoding(),
-                ((IStreamingControlInterfaceWithResult) controlInput).getResultDescription(),
+                resultStruct != null ? resultStruct.copy() : null,
                 ((IStreamingControlInterfaceWithResult) controlInput).getResultEncoding());
         }
         else
         {
             newCsHandler = addOrUpdateCommandStream(
                 controlInput.getName(),
-                controlInput.getCommandDescription(),
+                cmdStruct != null ? cmdStruct.copy() : null,
                 controlInput.getCommandEncoding());
         }
             
@@ -372,7 +415,18 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             public void onSubscribe(Subscription sub)
             {
                 this.sub = sub;
-                commandSubscriptions.put(controlInput.getName(), sub);
+
+                // the event bus delivers onSubscribe asynchronously, so the
+                // handler may already have been unregistered or rolled back
+                synchronized (SystemDriverTransactionHandler.this)
+                {
+                    if (driver == null)
+                    {
+                        sub.cancel();
+                        return;
+                    }
+                    commandSubscriptions.put(controlInput.getName(), sub);
+                }
                 sub.request(1);
             }
 

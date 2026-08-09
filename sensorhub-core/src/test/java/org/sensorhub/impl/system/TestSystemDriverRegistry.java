@@ -17,16 +17,20 @@ package org.sensorhub.impl.system;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
@@ -46,12 +50,20 @@ import org.sensorhub.api.system.SystemDisabledEvent;
 import org.sensorhub.api.system.SystemEnabledEvent;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.sensor.FakeSensor;
+import org.sensorhub.impl.sensor.FakeSensorControl1;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.sensor.FakeSensorData2;
 import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
 import org.sensorhub.impl.sensor.FakeSensorNetWithMembers;
+import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.sensorhub.test.AsyncTests;
+import org.vast.data.DataArrayImpl;
+import org.vast.data.TextEncodingImpl;
+import org.vast.sensorML.SMLHelper;
+import org.vast.swe.SWEHelper;
 import com.google.common.collect.Sets;
+import net.opengis.swe.v20.DataEncoding;
+import net.opengis.swe.v20.DataRecord;
 
 
 public class TestSystemDriverRegistry
@@ -569,6 +581,121 @@ public class TestSystemDriverRegistry
             .filter(e -> e instanceof SystemRemovedEvent)
             .count());
         assertEquals(sensor.getOutputs().size()+1, systemSubEventsReceived.size());
+    }
+
+
+    static class PoisonableFakeSensorData extends FakeSensorData
+    {
+        final AtomicBoolean poisonEncoding;
+
+        PoisonableFakeSensorData(IDataProducer parent, String name, AtomicBoolean poisonEncoding)
+        {
+            super(parent, name, SAMPLING_PERIOD, NUM_GEN_SAMPLES);
+            this.poisonEncoding = poisonEncoding;
+        }
+
+        @Override
+        public DataEncoding getRecommendedEncoding()
+        {
+            // simulates a driver error surfacing during member registration
+            return poisonEncoding.get() ? null : super.getRecommendedEncoding();
+        }
+    }
+
+
+    @Test
+    public void testRollbackOnFailedMemberRegistration() throws Exception
+    {
+        // sensor net with its own control input and one member with a poisoned output
+        FakeSensorNetWithMembers sensorNet = new FakeSensorNetWithMembers();
+        sensorNet.setConfiguration(new SensorConfig());
+        sensorNet.init();
+        sensorNet.setControlInterfaces(new FakeSensorControl1(sensorNet));
+
+        var poisonOutput = new AtomicBoolean(true);
+        sensorNet.addMembers(1, p -> {
+            p.addOutputs(new PoisonableFakeSensorData(p, NAME_OUTPUT1, poisonOutput));
+        });
+
+        // registration must fail on the member output...
+        try
+        {
+            registry.register(sensorNet).get();
+            fail("Registration should have failed on the poisoned member output");
+        }
+        catch (ExecutionException e)
+        {
+            // expected
+        }
+
+        // ...but must have released the command receiver subscription that was
+        // already connected before the member failure
+        var cmdTopic = EventUtils.getCommandDataTopicID(sensorNet.getUniqueIdentifier(), "command1");
+        assertEquals("Command receiver subscription leaked by failed registration",
+            0, hub.getEventBus().getNumberOfSubscribers(cmdTopic));
+
+        // a retry with the problem fixed must succeed and reconnect the receiver
+        poisonOutput.set(false);
+        registry.register(sensorNet).get();
+        assertEquals(1, hub.getEventBus().getNumberOfSubscribers(cmdTopic));
+        var memberUID = sensorNet.getMembers().keySet().iterator().next();
+        assertNotNull(stateDb.getDataStreamStore().getLatestVersion(memberUID, NAME_OUTPUT1));
+    }
+
+
+    @Test
+    public void testReRegisterDataStreamAfterVarSizeArrayMutation() throws Exception
+    {
+        var txn = new SystemDatabaseTransactionHandler(hub.getEventBus(), stateDb);
+
+        var sml = new SMLHelper();
+        var sysUID = "urn:test:varsize:sys1";
+        var sysHandler = txn.addSystem(new SystemWrapper(sml.createPhysicalSystem()
+            .uniqueID(sysUID)
+            .name("Test System")
+            .build()));
+
+        // output with a variable-size array, as built by spectrum-type drivers
+        var swe = new SWEHelper();
+        DataRecord rec = swe.createRecord()
+            .name("out1")
+            .label("Output 1")
+            .addField("time", swe.createTime().asSamplingTimeIsoUTC())
+            .addField("numSamples", swe.createCount().id("NUM_SAMPLES"))
+            .addField("samples", swe.createArray()
+                .withVariableSize("NUM_SAMPLES")
+                .withElement("sample", swe.createQuantity()))
+            .build();
+        var encoding = new TextEncodingImpl();
+        var dsHandler = sysHandler.addOrUpdateDataStream("out1", rec, encoding);
+
+        // record one obs so the datastream structure is locked (hasObs = true)
+        var obsData = rec.createDataBlock();
+        obsData.setDoubleValue(0, 1000.0);
+        obsData.setIntValue(1, 0);
+        dsHandler.addObs(obsData);
+
+        // simulate a driver re-registering after running for a while: identical
+        // SWE structure, but the variable array was resized by live data, so the
+        // compatibility hash changes while the SWE-XML equality hash does not
+        var mutatedRec = (DataRecord)rec.copy();
+        var liveData = mutatedRec.createDataBlock();
+        liveData.setDoubleValue(0, 2000.0);
+        liveData.setIntValue(1, 5);
+        mutatedRec.setData(liveData);
+        ((DataArrayImpl)mutatedRec.getComponent("samples")).updateSize();
+
+        // rename the system so the derived datastream name changes, which routes
+        // the re-registration into DataStreamTransactionHandler.update()
+        sysHandler.update(new SystemWrapper(sml.createPhysicalSystem()
+            .uniqueID(sysUID)
+            .name("Test System Renamed")
+            .build()));
+
+        // must neither throw "Cannot update the record structure or encoding of a
+        // datastream if it already has observations" nor create a new version
+        sysHandler.addOrUpdateDataStream("out1", mutatedRec, encoding);
+        assertEquals(1, stateDb.getDataStreamStore().size());
     }
 
 }
