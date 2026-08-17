@@ -353,7 +353,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         {
             var links = new ArrayList<ResourceLink>();
             links.add(assocs.getCanonicalLink(dsId));
-            links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
+            if (ctx.shouldAdvertiseHtml())
+                links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
             links.add(assocs.getParentLink(dsInfo, ResourceFormat.JSON));
             links.add(assocs.getObservationsLink(dsId, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);

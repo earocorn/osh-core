@@ -18,6 +18,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -85,6 +87,8 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     protected ResourceBindingHtml(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
         super(ctx, idEncoders);
+        if (!ctx.isHtmlAllowed())
+            throw ServiceErrors.unsupportedFormat(ResourceFormat.HTML);
         this.writer = new BufferedWriter(new OutputStreamWriter(ctx.getOutputStream(), StandardCharsets.UTF_8));
         this.html = IndentedHtml.into(writer);
         
@@ -261,7 +265,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             iff(comp.getDefinition() != null,
                 a("(" + comp.getDefinition() + ")")
                     .withClass("small")
-                    .withHref(comp.getDefinition())
+                    .withHref(getSafeHtmlHref(comp.getDefinition()))
                     .withTarget(DICTIONARY_TAB_NAME)
             )
         ).withClass("card-text");
@@ -330,7 +334,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 span("Definition").withClass(CSS_BOLD),
                 span(": "),
                 a(comp.getDefinition())
-                    .withHref(comp.getDefinition())
+                    .withHref(getSafeHtmlHref(comp.getDefinition()))
                     .withTarget(DICTIONARY_TAB_NAME)
             ));
         }
@@ -347,7 +351,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             {
                 var href = ((HasUom)comp).getUom().getHref();
                 uom = a(href)
-                    .withHref(href)
+                    .withHref(getSafeHtmlHref(href))
                     .withTarget(DICTIONARY_TAB_NAME);
             }
             
@@ -365,7 +369,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 span("Codespace").withClass(CSS_BOLD),
                 span(": "),
                 a(codeSpace)
-                    .withHref(codeSpace)
+                    .withHref(getSafeHtmlHref(codeSpace))
                     .withTarget(DICTIONARY_TAB_NAME)
             ));
         }
@@ -438,7 +442,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                         span("Reference Frame").withClass(CSS_BOLD),
                         span(": "),
                         a(refFrame)
-                            .withHref(refFrame)
+                            .withHref(getSafeHtmlHref(refFrame))
                             .withTarget(DICTIONARY_TAB_NAME)
                     ));
                 }
@@ -449,7 +453,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                         span("Local Frame").withClass(CSS_BOLD),
                         span(": "),
                         a(localFrame)
-                            .withHref(localFrame)
+                            .withHref(getSafeHtmlHref(localFrame))
                             .withTarget(DICTIONARY_TAB_NAME)
                     ));
                 }
@@ -599,7 +603,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     
     protected Tag<?> getLinkButton(String text, String href)
     {
-        return a(text).withHref(getAbsoluteHref(href)).withClasses(CSS_LINK_BTN_CLASSES);
+        return a(text).withHref(getSafeHtmlHref(href)).withClasses(CSS_LINK_BTN_CLASSES);
     }
     
     
@@ -607,9 +611,38 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     {
         return sup(a(" ")
             .withClass("text-decoration-none bi-box-arrow-up-right small")
-            .withHref(href)
+            .withHref(getSafeHtmlHref(href))
             .withTitle(title)
             .withTarget(DICTIONARY_TAB_NAME));
+    }
+
+
+    protected String getSafeHtmlHref(String href)
+    {
+        if (href == null)
+            return "#";
+
+        href = getAbsoluteHref(href).trim();
+        if (href.startsWith("#"))
+            return href;
+
+        try
+        {
+            var uri = new URI(href);
+            var scheme = uri.getScheme();
+            if (scheme == null)
+                return href;
+
+            scheme = scheme.toLowerCase();
+            if ("http".equals(scheme) || "https".equals(scheme) || "mailto".equals(scheme))
+                return href;
+        }
+        catch (URISyntaxException e)
+        {
+            return "#";
+        }
+
+        return "#";
     }
     
     

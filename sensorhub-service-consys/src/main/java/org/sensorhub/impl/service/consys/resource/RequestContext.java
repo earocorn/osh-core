@@ -386,7 +386,19 @@ public class RequestContext
     public boolean isBrowserHtmlRequest()
     {
         var acceptHdr = getRequestHeader("Accept");
-        return acceptHdr != null && acceptHdr.contains("text/html");
+        return isHtmlAllowed() && acceptHdr != null && acceptHdr.contains("text/html");
+    }
+
+
+    public boolean isHtmlAllowed()
+    {
+        return servlet == null || servlet.allowHtmlResponses();
+    }
+
+
+    public boolean shouldAdvertiseHtml()
+    {
+        return isHtmlAllowed();
     }
     
     

@@ -43,13 +43,16 @@ public class HomePageHandler extends BaseHandler
     {
         var format = parseFormat(ctx.getParameterMap());
         
-        // set content type
-        ctx.setResponseContentType(format.getMimeType());
-        
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        {
+            ctx.setResponseFormat(ResourceFormat.HTML);
             new HomePageHtml(ctx).serialize(0L, serviceConfig, true);
+        }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
+        {
+            ctx.setResponseFormat(ResourceFormat.JSON);
             new HomePageJson(ctx).serialize(0L, serviceConfig, true);
+        }
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

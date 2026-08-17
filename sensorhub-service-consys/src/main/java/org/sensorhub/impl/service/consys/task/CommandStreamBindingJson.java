@@ -297,7 +297,8 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         {
             var links = new ArrayList<ResourceLink>();
             links.add(assocs.getCanonicalLink(dsId));
-            links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
+            if (ctx.shouldAdvertiseHtml())
+                links.add(assocs.getAlternateLink(dsId, ResourceFormat.HTML, "HTML"));
             links.add(assocs.getParentLink(csInfo, ResourceFormat.JSON));
             links.add(assocs.getCommandsLink(dsId, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);

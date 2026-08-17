@@ -169,7 +169,11 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     + "           }\n"
                     + "        })\n"
                     + "        .bindPopup(function (layer) {\n"
-                    + "            return '<a href=\"#' + layer.feature.properties.uid + '\">' + layer.feature.properties.name + '</a>';\n"
+                    + "            let props = layer.feature.properties || {};\n"
+                    + "            let link = document.createElement('a');\n"
+                    + "            link.href = '#' + encodeURIComponent(props.uid || '');\n"
+                    + "            link.textContent = props.name || '';\n"
+                    + "            return link;\n"
                     + "        })\n"
                     + "        .addTo(map);\n\n"
                     + "        map.invalidateSize();\n"
@@ -334,7 +338,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     if (title == null)
                         title = link.getHref();
                     
-                    valueTag = a(title).withHref(link.getHref());
+                    valueTag = a(title).withHref(getSafeHtmlHref(link.getHref()));
                 }
                 else
                     return new UnescapedText("");

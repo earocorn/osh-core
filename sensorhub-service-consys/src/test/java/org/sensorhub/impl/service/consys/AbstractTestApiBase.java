@@ -121,8 +121,14 @@ public abstract class AbstractTestApiBase
         swaCfg.endPoint = "/api";
         swaCfg.name = "ConSys API Service";
         swaCfg.autoStart = true;
+        configureService(swaCfg);
         service = (ConSysApiService)moduleRegistry.loadModule(swaCfg, TIMEOUT);
         apiRootUrl = httpServer.getPublicEndpointUrl(swaCfg.endPoint);
+    }
+
+
+    protected void configureService(ConSysApiServiceConfig config)
+    {
     }
     
     

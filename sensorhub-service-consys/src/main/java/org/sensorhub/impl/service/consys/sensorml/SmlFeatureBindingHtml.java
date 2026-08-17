@@ -528,7 +528,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             title = ref.getTargetUID();
         if (title == null)
             title = ref.getHref();
-        return a(title).withHref(ref.getHref());
+        return a(title).withHref(getSafeHtmlHref(ref.getHref()));
     }
     
     
@@ -549,7 +549,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             title = ref.getTargetUID();
         if (title == null)
             title = ref.getHref();
-        return a(title).withHref(ref.getHref());
+        return a(title).withHref(getSafeHtmlHref(ref.getHref()));
     }
     
     
@@ -595,7 +595,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                 content.with(div(
                     span("Website").withClass(CSS_BOLD),
                     span(": "),
-                    span(a(link).withHref(link))
+                    span(a(link).withHref(getSafeHtmlHref(link)))
                 )).withClass(CSS_CARD_TEXT);
             }
             
@@ -652,7 +652,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                         span("Email").withClass(CSS_BOLD),
                         span(": "),
                         span(a(email)
-                            .withHref("mailto:"+email)
+                            .withHref(getSafeHtmlHref("mailto:"+email))
                             .withTarget(BLANK_TAB))
                     )).withClass(CSS_CARD_TEXT);
                 }
@@ -718,7 +718,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             content.with(div(
                 span("Link").withClass(CSS_BOLD),
                 span(": "),
-                span(a(getPrettyLink(link)).withHref(link))
+                span(a(getPrettyLink(link)).withHref(getSafeHtmlHref(link)))
             )).withClass(CSS_CARD_TEXT);
         }
         

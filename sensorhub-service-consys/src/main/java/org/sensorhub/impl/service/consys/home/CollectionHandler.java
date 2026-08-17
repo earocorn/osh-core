@@ -201,12 +201,15 @@ public class CollectionHandler extends BaseHandler
         
         if (ctx.getFormat().equals(ResourceFormat.JSON))
         {
-            links.add(ResourceLink.builder()
-                .rel("alternate")
-                .title("This document as HTML")
-                .type(ResourceFormat.HTML.getMimeType())
-                .href(ctx.getApiRootURL() + "/collections?f=" + ResourceFormat.HTML.getMimeType())
-                .build());
+            if (ctx.shouldAdvertiseHtml())
+            {
+                links.add(ResourceLink.builder()
+                    .rel("alternate")
+                    .title("This document as HTML")
+                    .type(ResourceFormat.HTML.getMimeType())
+                    .href(ctx.getApiRootURL() + "/collections?f=" + ResourceFormat.HTML.getMimeType())
+                    .build());
+            }
         }
         else
         {

@@ -114,7 +114,8 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     
                     links.add(assocs.getCanonicalLink(bean.getId()));
                     links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.SML_JSON, "SensorML"));
-                    links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.HTML, "HTML"));
+                    if (ctx.shouldAdvertiseHtml())
+                        links.add(assocs.getAlternateLink(bean.getId(), ResourceFormat.HTML, "HTML"));
                     assocs.getParentLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
                     assocs.getSubsystemsLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);
                     assocs.getSamplingFeaturesLink(bean.getId(), ResourceFormat.GEOJSON).ifPresent(links::add);

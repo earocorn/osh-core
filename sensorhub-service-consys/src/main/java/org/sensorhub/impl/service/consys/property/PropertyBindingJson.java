@@ -151,7 +151,8 @@ public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDeriv
         {
             var links = new ArrayList<ResourceLink>();
             links.add(assocs.getCanonicalLink(propId));
-            links.add(assocs.getAlternateLink(propId, ResourceFormat.HTML, "HTML"));
+            if (ctx.shouldAdvertiseHtml())
+                links.add(assocs.getAlternateLink(propId, ResourceFormat.HTML, "HTML"));
             links.add(assocs.getDerivedPropertiesLink(prop, ResourceFormat.JSON));
             writeLinksAsJson(writer, links);
         }

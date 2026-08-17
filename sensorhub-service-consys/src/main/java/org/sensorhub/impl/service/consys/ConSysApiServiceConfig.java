@@ -69,6 +69,11 @@ public class ConSysApiServiceConfig extends OGCServiceConfig
 
     @DisplayInfo(label="Max Limit", desc="Maximum number of resources returned in a single page")
     public int maxResponseLimit = 100000;
+
+
+    @DisplayInfo(label="Allow HTML Responses", desc="Set to false to disable HTML resource representations. "
+        + "When disabled, browser requests receive JSON and explicit HTML format requests are rejected.")
+    public boolean allowHtmlResponses = true;
     
     
     @DisplayInfo(desc="Default live time-out for new offerings created via SOS-T")

@@ -87,15 +87,15 @@ public class PropertyBindingHtml extends ResourceBindingHtml<PropertyKey, IDeriv
             ).withClasses(CSS_CARD_SUBTITLE)),
             div(
                 span("Base Property: ").withClass(CSS_BOLD),
-                a(getPrettyNameFromUri(prop.getBaseProperty())).withHref(prop.getBaseProperty())
+                a(getPrettyNameFromUri(prop.getBaseProperty())).withHref(getSafeHtmlHref(prop.getBaseProperty()))
             ),
             prop.getObjectType() != null ? div(
                 span("Object Type: ").withClass(CSS_BOLD),
-                a(getPrettyNameFromUri(prop.getObjectType())).withHref(prop.getObjectType())
+                a(getPrettyNameFromUri(prop.getObjectType())).withHref(getSafeHtmlHref(prop.getObjectType()))
             ) : null,
             prop.getStatistic() != null ? div(
                 span("Applied Statistic: ").withClass(CSS_BOLD),
-                a(getPrettyNameFromUri(prop.getStatistic())).withHref(prop.getStatistic())
+                a(getPrettyNameFromUri(prop.getStatistic())).withHref(getSafeHtmlHref(prop.getStatistic()))
             ) : null,
             !prop.getQualifiers().isEmpty() ? div(
                 span("Qualifiers: ").withClass(CSS_BOLD),

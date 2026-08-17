@@ -54,12 +54,23 @@ public abstract class RestApiServlet extends HttpServlet
     static final String INTERNAL_ERROR_LOG_MSG = INTERNAL_ERROR_MSG + " while processing request " + LOG_REQUEST_MSG;
     static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
     static final String JSON_CONTENT_TYPE = "application/json";
+    static final String DEFAULT_CONTENT_SECURITY_POLICY =
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https:; " +
+        "style-src 'self' 'unsafe-inline' https:; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' https:; " +
+        "font-src 'self'; " +
+        "object-src 'none'; " +
+        "base-uri 'none'; " +
+        "frame-ancestors 'none'";
 
     protected final RestApiSecurity securityHandler;
     protected final IResourceHandler rootHandler;
     protected final ScheduledExecutorService threadPool;
     protected final Logger log;
     protected final String rootUrl;
+    protected final boolean allowHtmlResponses;
     protected WebSocketServletFactory wsFactory;
     
     
@@ -83,6 +94,8 @@ public abstract class RestApiServlet extends HttpServlet
         this.securityHandler = securityHandler;
         this.rootHandler = rootHandler;
         this.log = logger;
+        this.allowHtmlResponses = !(service instanceof ConSysApiService) ||
+            ((ConSysApiService)service).getConfiguration().allowHtmlResponses;
         
         var endPointUrl = service.getPublicEndpointUrl();
         this.rootUrl = endPointUrl.endsWith("/") ? endPointUrl.substring(0, endPointUrl.length()-1) : endPointUrl;
@@ -143,7 +156,22 @@ public abstract class RestApiServlet extends HttpServlet
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         logRequest(req);
+        setSecurityHeaders(resp);
         super.service(req, resp);
+    }
+
+
+    protected void setSecurityHeaders(HttpServletResponse resp)
+    {
+        resp.setHeader("X-Content-Type-Options", "nosniff");
+        resp.setHeader("Content-Security-Policy", DEFAULT_CONTENT_SECURITY_POLICY);
+        resp.setHeader("X-Frame-Options", "DENY");
+    }
+
+
+    public boolean allowHtmlResponses()
+    {
+        return allowHtmlResponses;
     }
 
 
