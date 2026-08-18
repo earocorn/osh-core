@@ -58,6 +58,17 @@ public class TestConSysHtmlSecurity extends AbstractTestApiBase
         assertTrue(resp.headers().firstValue("Content-Security-Policy").orElse("").contains("frame-ancestors 'none'"));
         assertEquals("DENY", resp.headers().firstValue("X-Frame-Options").orElse(null));
     }
+
+
+    @Test
+    public void testStaticCssHasCssContentTypeWithNoSniff() throws Exception
+    {
+        var resp = sendGetRequestWithAccept("/static/css/bootstrap.min.css", "text/css");
+
+        checkStatusCode(resp, 200);
+        assertEquals("nosniff", resp.headers().firstValue("X-Content-Type-Options").orElse(null));
+        assertTrue(resp.headers().firstValue("Content-Type").orElse("").startsWith("text/css"));
+    }
     
     
     @Test

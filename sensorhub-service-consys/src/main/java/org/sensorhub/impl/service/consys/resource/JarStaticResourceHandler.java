@@ -15,6 +15,7 @@ Copyright (C) 2024 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.resource;
 
 import java.io.IOException;
+import java.util.Map;
 import org.sensorhub.impl.service.consys.BaseHandler;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ServiceErrors;
@@ -24,6 +25,12 @@ import com.google.common.io.ByteStreams;
 public class JarStaticResourceHandler extends BaseHandler
 {
     public static final String[] NAMES = { "static" };
+    static final Map<String, String> MIME_TYPES = Map.of(
+        "css", "text/css",
+        "js", "application/javascript",
+        "woff", "font/woff",
+        "woff2", "font/woff2"
+    );
     
     
     @Override
@@ -43,8 +50,21 @@ public class JarStaticResourceHandler extends BaseHandler
         if (is == null)
             throw ServiceErrors.notFound(path);
         
+        var mimeType = getMimeType(path);
+        if (mimeType != null)
+            ctx.setResponseContentType(mimeType);
         ctx.setResponseHeader("Cache-Control", "public, max-age=2592000;");
         ByteStreams.copy(is, ctx.getOutputStream());
+    }
+
+
+    protected String getMimeType(String path)
+    {
+        var extStart = path.lastIndexOf('.');
+        if (extStart < 0 || extStart == path.length()-1)
+            return null;
+
+        return MIME_TYPES.get(path.substring(extStart+1).toLowerCase());
     }
 
 
