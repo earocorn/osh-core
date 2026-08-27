@@ -222,6 +222,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 if (config.enableCORS)
                 {
                     FilterHolder holder = servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+                    holder.setInitParameter("allowedOrigins", String.join(",", config.corsAllowedOrigins));
                     holder.setInitParameter("allowedMethods", CORS_ALLOWED_METHODS);
                     holder.setInitParameter("allowedHeaders", CORS_ALLOWED_HEADERS);
                     holder.setInitParameter("exposedHeaders", CORS_EXPOSE_HEADERS);

@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.module.ModuleConfig;
@@ -102,6 +104,10 @@ public class HttpServerConfig extends ModuleConfig
     
     @DisplayInfo(label="Enable CORS", desc="Enable generation of CORS headers to allow cross-domain requests from browsers")
     public boolean enableCORS = true;
+
+
+    @DisplayInfo(label="CORS Allowed Origins", desc="Origins allowed to make cross-domain requests. Use * to allow all origins.")
+    public List<String> corsAllowedOrigins = new ArrayList<>(List.of("*"));
     
 
     public HttpServerConfig()

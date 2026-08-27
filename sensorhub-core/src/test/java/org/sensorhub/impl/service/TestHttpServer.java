@@ -20,7 +20,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -58,6 +62,12 @@ public class TestHttpServer
         HttpServerConfig config = new HttpServerConfig();
         config.autoStart = true;
         config.authMethod = authMethod;
+        return startServerWithConfig(config);
+    }
+
+
+    private HttpServer startServerWithConfig(HttpServerConfig config) throws Exception
+    {
         return (HttpServer)registry.loadModule(config);
     }
     
@@ -151,6 +161,45 @@ public class TestHttpServer
     public void testConnectNoAuth() throws Exception
     {
         testConnect(null);
+    }
+
+
+    @Test
+    public void testCorsAllowsAllOriginsByDefault() throws Exception
+    {
+        var httpServer = startServer(null);
+        var response = sendCorsRequest(httpServer, "https://client.example");
+
+        assertEquals(200, response.statusCode());
+        assertEquals("https://client.example", response.headers().firstValue("Access-Control-Allow-Origin").orElse(null));
+    }
+
+
+    @Test
+    public void testCorsAllowedOriginsWhitelist() throws Exception
+    {
+        HttpServerConfig config = new HttpServerConfig();
+        config.corsAllowedOrigins.clear();
+        config.corsAllowedOrigins.add("https://allowed.example");
+        config.corsAllowedOrigins.add("https://also-allowed.example");
+        var httpServer = startServerWithConfig(config);
+
+        var allowedResponse = sendCorsRequest(httpServer, "https://allowed.example");
+        assertEquals(200, allowedResponse.statusCode());
+        assertEquals("https://allowed.example", allowedResponse.headers().firstValue("Access-Control-Allow-Origin").orElse(null));
+
+        var deniedResponse = sendCorsRequest(httpServer, "https://denied.example");
+        assertEquals(200, deniedResponse.statusCode());
+        assertFalse(deniedResponse.headers().firstValue("Access-Control-Allow-Origin").isPresent());
+    }
+
+
+    private HttpResponse<String> sendCorsRequest(HttpServer httpServer, String origin) throws IOException, InterruptedException
+    {
+        var request = HttpRequest.newBuilder(URI.create(httpServer.getServletsBaseUrl() + "test"))
+            .header("Origin", origin)
+            .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
     
     
