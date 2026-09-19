@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Link;
@@ -85,7 +87,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             addComponent(new Spacing());
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Process Inputs");
+            Label sectionLabel = new Label(tr("section.processInputs"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -104,7 +106,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             addComponent(new Spacing());
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Process Parameters");
+            Label sectionLabel = new Label(tr("section.processParameters"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -160,7 +162,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 
             // wrap all parameters into a single datarecord so we can submit them together
             DataRecordImpl params = new DataRecordImpl();
-            params.setName("Parameters");
+            params.setName(tr("section.parameters"));
             for (DataComponent param: module.getParameterDescriptors().values())
                 params.addComponent(param.getName(), param);
             params.combineDataBlocks();
@@ -183,7 +185,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         addComponent(buttonBar);        
         
         // add data source button
-        Button addDatasrcBtn = new Button("Datasource", ADD_ICON);
+        Button addDatasrcBtn = new Button(tr("action.datasource"), ADD_ICON);
         addDatasrcBtn.addStyleName(STYLE_SMALL);
         buttonBar.addComponent(addDatasrcBtn);        
         addDatasrcBtn.addClickListener(new ClickListener() {
@@ -208,7 +210,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         });
         
         // add process button
-        Button addProcessBtn = new Button("Process", ADD_ICON);
+        Button addProcessBtn = new Button(tr("action.process"), ADD_ICON);
         addProcessBtn.addStyleName(STYLE_SMALL);
         buttonBar.addComponent(addProcessBtn);
         addProcessBtn.addClickListener(new ClickListener() {

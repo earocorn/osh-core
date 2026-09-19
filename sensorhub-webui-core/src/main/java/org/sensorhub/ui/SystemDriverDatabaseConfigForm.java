@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -56,7 +58,7 @@ public class SystemDriverDatabaseConfigForm extends GenericConfigForm implements
         if (propId.equals(PROP_AUTOPURGE))
         {
             Map<String, Class<?>> classList = new LinkedHashMap<String, Class<?>>();
-            classList.put("Auto Purge by Maximum Age", MaxAgeAutoPurgeConfig.class);
+            classList.put(tr("option.autoPurgeMaximumAge"), MaxAgeAutoPurgeConfig.class);
             return classList;
         }
         

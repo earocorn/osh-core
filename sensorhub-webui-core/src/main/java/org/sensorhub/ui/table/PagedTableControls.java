@@ -1,5 +1,7 @@
 package org.sensorhub.ui.table;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
@@ -17,7 +19,7 @@ import com.vaadin.v7.ui.TextField;
 public class PagedTableControls extends HorizontalLayout {
 
     private ComboBox itemsPerPageSelect = new ComboBox();
-    private Label itemsPerPageLabel = new Label("Items per page:");
+    private Label itemsPerPageLabel = new Label(tr("section.itemsPerPage"));
     //private Label pageLabel = new Label("Page:&nbsp;", ContentMode.HTML);
     private Button btnFirst = new Button("<<");
     private Button btnPrevious = new Button("<");
@@ -42,7 +44,7 @@ public class PagedTableControls extends HorizontalLayout {
         
         currentPageTextField.setValue(String.valueOf(table.getCurrentPage()));
         currentPageTextField.setConverter(Integer.class);
-        final IntegerRangeValidator validator = new IntegerRangeValidator("Wrong page number", 1, table.getTotalAmountOfPages());
+        final IntegerRangeValidator validator = new IntegerRangeValidator(tr("validation.pageNumber"), 1, table.getTotalAmountOfPages());
         currentPageTextField.addValidator(validator);
         currentPageTextField.setWidth(50, Unit.PIXELS);
         currentPageTextField.addStyleName(UIConstants.STYLE_SMALL);

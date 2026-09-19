@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
@@ -37,17 +39,13 @@ import com.vaadin.ui.Window;
 @SuppressWarnings("serial")
 public class ConfirmDialog extends Window implements ClickListener
 {
-    private static String DEFAULT_CAPTION = "Please Confirm";
-    private static String DEFAULT_OK_CAPTION = "Yes";
-    private static String DEFAULT_CANCEL_CAPTION = "No";
-    
     private boolean confirmed;
     private Button okButton, cancelButton;
     
         
     public ConfirmDialog(String message)
     {
-        this(DEFAULT_CAPTION, message, DEFAULT_OK_CAPTION, DEFAULT_CANCEL_CAPTION);
+        this(tr("dialog.confirm.title"), message, tr("action.yes"), tr("action.no"));
     }
     
     

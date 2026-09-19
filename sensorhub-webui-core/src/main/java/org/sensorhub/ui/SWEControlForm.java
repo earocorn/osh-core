@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.security.SecureRandom;
 import java.util.Random;
 import org.sensorhub.api.command.CommandData;
@@ -83,7 +85,7 @@ public class SWEControlForm extends SWEEditForm
         super.buildForm();
         
         // send button
-        Button sendBtn = new Button("Send Command");
+        Button sendBtn = new Button(tr("action.sendCommand"));
         sendBtn.addStyleName(UIConstants.STYLE_SMALL);
         addComponent(sendBtn);
         setComponentAlignment(sendBtn, Alignment.MIDDLE_LEFT);
@@ -112,7 +114,7 @@ public class SWEControlForm extends SWEEditForm
                 }
                 catch (Exception e)
                 {
-                    DisplayUtils.showErrorPopup("Error while sending command to sensor", e);
+                    DisplayUtils.showErrorPopup(tr("error.sendCommand"), e);
                 }
             }
         });

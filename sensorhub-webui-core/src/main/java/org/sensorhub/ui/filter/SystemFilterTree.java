@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import com.vaadin.event.Action;
@@ -23,8 +25,8 @@ import com.vaadin.v7.ui.TreeTable;
 @SuppressWarnings({"deprecation"})
 public class SystemFilterTree extends FeatureFilterBaseTree<SystemFilter, SystemFilter.Builder>
 {
-    private static final String PARENTFILTER_PROPERTY = "With Parent Systems";
-    private static final String DATASTREAMFILTER_PROPERTY = "With Datastreams";
+    private final String parentFilterProperty = tr("filter.property.parentSystems");
+    private final String dataStreamFilterProperty = tr("filter.property.datastreams");
     
     
     static void getActions(Class<?> filterClass, List<Action> actions)
@@ -43,13 +45,13 @@ public class SystemFilterTree extends FeatureFilterBaseTree<SystemFilter, System
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, SystemFilter filter)
     {
         tree.setPageLength(tree.getPageLength()+7);
-        var id = tree.addItem(new Object[] {"System Filter", null}, null);
+        var id = tree.addItem(new Object[] {tr("filter.system"), null}, null);
         if (parentId != null)
             tree.setParent(id, parentId);
         
         super.renderFilterAsTree(tree, id, filter);
-        toTreeItem(tree, id, PARENTFILTER_PROPERTY, SystemFilterTree::newFilter, filter.getParentFilter());
-        toTreeItem(tree, id, DATASTREAMFILTER_PROPERTY, DataStreamFilterTree::newFilter, filter.getDataStreamFilter());
+        toTreeItem(tree, id, parentFilterProperty, SystemFilterTree::newFilter, filter.getParentFilter());
+        toTreeItem(tree, id, dataStreamFilterProperty, DataStreamFilterTree::newFilter, filter.getDataStreamFilter());
         
         return id;
     }
@@ -69,14 +71,14 @@ public class SystemFilterTree extends FeatureFilterBaseTree<SystemFilter, System
     {
         super.fromTreeItem(tree, itemId, itemName, itemValue, builder);
         
-        if (PARENTFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        if (parentFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var rootItemId = tree.getChildren(itemId).iterator().next();
             var subTree = new SystemFilterTree();
             var filter = subTree.buildFilterFromTree(tree, rootItemId);
             builder.withParents(filter);
         }
-        else if (DATASTREAMFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (dataStreamFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var rootItemId = tree.getChildren(itemId).iterator().next();
             var subTree = new DataStreamFilterTree();

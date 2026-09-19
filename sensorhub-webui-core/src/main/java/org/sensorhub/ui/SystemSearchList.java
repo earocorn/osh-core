@@ -14,6 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -45,7 +47,7 @@ public class SystemSearchList extends VerticalLayout
         setMargin(false);
         
         // system uid / search box
-        final var searchBox = new SearchBox("Search", "Type a UID prefix or keywords to search for systems");
+        final var searchBox = new SearchBox(tr("action.search"), tr("tooltip.searchSystems"));
         searchBox.setValue("*");
         searchBox.addToParent(this);
         searchBox.addValueChangeListener(new ValueChangeListener() {
@@ -95,10 +97,10 @@ public class SystemSearchList extends VerticalLayout
         table.addStyleName(UIConstants.STYLE_SMALL);
         
         // add column names
-        table.addContainerProperty(PROP_SYSTEM_UID, String.class, null, "System UID", null, null);
-        table.addContainerProperty(PROP_SYSTEM_NAME, String.class, null, "Name", null, null);
-        table.addContainerProperty(PROP_SYSTEM_VALID_TIME, String.class, null, "Validity", null, null);
-        table.addContainerProperty(PROP_SYSTEM_DESC, String.class, null, "Description", null, null);
+        table.addContainerProperty(PROP_SYSTEM_UID, String.class, null, tr("column.systemUid"), null, null);
+        table.addContainerProperty(PROP_SYSTEM_NAME, String.class, null, tr("column.name"), null, null);
+        table.addContainerProperty(PROP_SYSTEM_VALID_TIME, String.class, null, tr("column.validity"), null, null);
+        table.addContainerProperty(PROP_SYSTEM_DESC, String.class, null, tr("column.description"), null, null);
         
         table.addItemClickListener(selectionListener);
         
@@ -144,10 +146,10 @@ public class SystemSearchList extends VerticalLayout
     {
         var validTime = proc.getValidTime();
         if (validTime == null)
-            return "ALWAYS";
+            return tr("label.always");
         
         return validTime.begin().truncatedTo(ChronoUnit.SECONDS) + " / " +
-               (validTime.endsNow() ? "now" : validTime.end().truncatedTo(ChronoUnit.SECONDS));
+               (validTime.endsNow() ? tr("label.now") : validTime.end().truncatedTo(ChronoUnit.SECONDS));
     }
     
     

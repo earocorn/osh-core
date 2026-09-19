@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Arrays;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
 import com.vaadin.v7.data.Property.ValueChangeEvent;
@@ -29,7 +31,7 @@ public class ValueEnumPopup extends Window
     
     public ValueEnumPopup(int width, final ValueCallback callback, final Enum<?>[] allowedValues)
     {
-        super("Select New Value");
+        super(tr("dialog.selectValue"));
         VerticalLayout layout = new VerticalLayout();
         
         final ListSelect listBox = new ListSelect();

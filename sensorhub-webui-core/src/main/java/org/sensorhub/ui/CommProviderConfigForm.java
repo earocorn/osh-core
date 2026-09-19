@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.MyBeanItem;
@@ -31,13 +33,19 @@ public class CommProviderConfigForm extends GenericConfigForm
     @Override
     public void build(String propId, ComplexProperty prop, boolean includeSubForms)
     {
-        String title = prop.getLabel();
+        String title = AdminI18n.trConfig(
+            prop.getDeclaringClass(),
+            prop.getFieldName() + ".label",
+            prop.getLabel());
         if (title == null)
-            title = "Communication Provider";
+            title = tr("section.communicationProvider");
         
-        String desc = prop.getDescription();
+        String desc = AdminI18n.trConfig(
+            prop.getDeclaringClass(),
+            prop.getFieldName() + ".description",
+            prop.getDescription());
         if (desc == null)
-            desc = "Settings for selected communication provider";
+            desc = tr("section.communicationProvider.description");
         
         if (prop.getValue() != null)
         {
@@ -46,7 +54,11 @@ public class CommProviderConfigForm extends GenericConfigForm
             if (beanItem != null)
             {
                 Class<?> beanType = beanItem.getBean().getClass();
-                title += " (" + beanType.getSimpleName().replace("Config", "") + ")";
+                String providerName = AdminI18n.trConfig(
+                    beanType,
+                    "module.name",
+                    beanType.getSimpleName().replace("Config", ""));
+                title += " (" + providerName + ")";
             }
         }
         
@@ -66,7 +78,7 @@ public class CommProviderConfigForm extends GenericConfigForm
         else if (propId.endsWith(UIConstants.PROP_AUTOSTART))
             field.setVisible(false);
         else if (propId.endsWith(UIConstants.PROP_MODULECLASS))
-            field.setCaption("Provider Class");
+            field.setCaption(tr("section.providerClass"));
         
         return field;
     }

@@ -14,6 +14,8 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.HashSet;
 import java.util.Set;
 import org.sensorhub.api.module.IModule;
@@ -37,7 +39,7 @@ public class ModuleErrors implements ErrorMessage
     @Override
     public String getFormattedHtmlMessage()
     {
-        return "Module Error";
+        return tr("error.module");
     }
     
     

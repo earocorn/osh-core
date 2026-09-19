@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import com.vaadin.event.Action;
@@ -23,10 +25,10 @@ import com.vaadin.v7.ui.TreeTable;
 @SuppressWarnings({"deprecation"})
 public class ObsFilterTree extends FilterTree<ObsFilter, ObsFilter.Builder>
 {
-    private static final String PHENTIME_PROPERTY = "Phenomenon Time";
-    private static final String RESULTTIME_PROPERTY = "Result Time";
-    private static final String DATASTREAMFILTER_PROPERTY = "With Datastreams";
-    private static final String FOIFILTER_PROPERTY = "With Fois";
+    private final String phenomenonTimeProperty = tr("filter.property.phenomenonTime");
+    private final String resultTimeProperty = tr("filter.property.resultTime");
+    private final String dataStreamFilterProperty = tr("filter.property.datastreams");
+    private final String foiFilterProperty = tr("filter.property.fois");
     
     
     static void getActions(Class<?> filterClass, List<Action> actions)
@@ -45,14 +47,14 @@ public class ObsFilterTree extends FilterTree<ObsFilter, ObsFilter.Builder>
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, ObsFilter filter)
     {
         tree.setPageLength(tree.getPageLength()+5);
-        var id = tree.addItem(new Object[] {"Obs Filter", null}, null);
+        var id = tree.addItem(new Object[] {tr("filter.observation"), null}, null);
         if (parentId != null)
             tree.setParent(id, parentId);
         
-        toTreeItem(tree, id, PHENTIME_PROPERTY, filter.getPhenomenonTime());
-        toTreeItem(tree, id, RESULTTIME_PROPERTY, filter.getResultTime());
-        toTreeItem(tree, id, DATASTREAMFILTER_PROPERTY, DataStreamFilterTree::newFilter, filter.getDataStreamFilter());
-        toTreeItem(tree, id, FOIFILTER_PROPERTY, FoiFilterTree::newFilter, filter.getFoiFilter());
+        toTreeItem(tree, id, phenomenonTimeProperty, filter.getPhenomenonTime());
+        toTreeItem(tree, id, resultTimeProperty, filter.getResultTime());
+        toTreeItem(tree, id, dataStreamFilterProperty, DataStreamFilterTree::newFilter, filter.getDataStreamFilter());
+        toTreeItem(tree, id, foiFilterProperty, FoiFilterTree::newFilter, filter.getFoiFilter());
         
         return id;
     }
@@ -70,24 +72,24 @@ public class ObsFilterTree extends FilterTree<ObsFilter, ObsFilter.Builder>
     @Override
     protected void fromTreeItem(TreeTable tree, Object itemId, String itemName, String itemValue, ObsFilter.Builder builder)
     {
-        if (PHENTIME_PROPERTY.equals(itemName))
+        if (phenomenonTimeProperty.equals(itemName))
         {
             var tf = readTemporalFilter(itemValue);
             builder.withPhenomenonTime(tf);
         }
-        else if (RESULTTIME_PROPERTY.equals(itemName))
+        else if (resultTimeProperty.equals(itemName))
         {
             var tf = readTemporalFilter(itemValue);
             builder.withResultTime(tf);
         }
-        else if (DATASTREAMFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (dataStreamFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var rootItemId = tree.getChildren(itemId).iterator().next();
             var subTree = new DataStreamFilterTree();
             var filter = subTree.buildFilterFromTree(tree, rootItemId);
             builder.withDataStreams(filter);
         }
-        else if (FOIFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (foiFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var rootItemId = tree.getChildren(itemId).iterator().next();
             var subTree = new FoiFilterTree();

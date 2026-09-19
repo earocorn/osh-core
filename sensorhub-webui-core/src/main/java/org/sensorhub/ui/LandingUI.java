@@ -1,5 +1,6 @@
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
@@ -43,6 +44,8 @@ public class LandingUI extends UI{
 
     @Override
     protected void init(VaadinRequest vaadinRequest) {
+
+        AdminI18n.initializeLocale(this, vaadinRequest);
 
         try{
             ServletContext servletContext = VaadinServlet.getCurrent().getServletContext();
@@ -192,10 +195,10 @@ public class LandingUI extends UI{
      * @return button or label
      */
     private Component buildEndpointComponent(String endpoint) {
-        Button button = new Button("VIEW");
+        Button button = new Button(tr("action.view"));
         button.addStyleNames(ValoTheme.BUTTON_LARGE, ValoTheme.BUTTON_ICON_ALIGN_RIGHT);
 
-        String title = "No accessible endpoint";
+        String title = tr("status.noEndpoint");
 
         String titleHtml = "<style>"
                 + "@import url('https://fonts.googleapis.com/css2?family=Electrolize&display=swap');"
@@ -264,8 +267,8 @@ public class LandingUI extends UI{
      */
     private Component createLogoutButton(){
         // logout button
-        Button logoutButton = new Button("Logout");
-        logoutButton.setDescription("Logout from OSH node");
+        Button logoutButton = new Button(tr("action.logout"));
+        logoutButton.setDescription(tr("tooltip.logout"));
         logoutButton.setIcon(FontAwesome.SIGN_OUT);
         logoutButton.addStyleName(ValoTheme.BUTTON_LARGE);
         logoutButton.setWidth("200px");
@@ -275,7 +278,7 @@ public class LandingUI extends UI{
             @Override
             public void buttonClick(Button.ClickEvent event)
             {
-                final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to logout?");
+                final ConfirmDialog popup = new ConfirmDialog(tr("dialog.logout"));
                 popup.addCloseListener(new Window.CloseListener() {
                     @Override
                     public void windowClose(Window.CloseEvent e)

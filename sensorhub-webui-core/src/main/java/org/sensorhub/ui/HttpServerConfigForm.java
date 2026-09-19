@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import com.vaadin.v7.data.Property;
 import com.vaadin.v7.data.Validator;
 import com.vaadin.v7.data.validator.StringLengthValidator;
@@ -35,7 +37,7 @@ public class HttpServerConfigForm extends GenericConfigForm
         
         if (propId.equals(PROP_SERVLET_ROOT))
         {
-            field.addValidator(new StringLengthValidator(MSG_REQUIRED_FIELD, 2, 256, false));
+            field.addValidator(new StringLengthValidator(tr("validation.required"), 2, 256, false));
         }
         else if (propId.equals(PROP_HTTP_PORT) || propId.equals(PROP_HTTPS_PORT))
         {
@@ -45,7 +47,7 @@ public class HttpServerConfigForm extends GenericConfigForm
                 {
                     int portNum = (Integer)value;
                     if (portNum > 10000 || portNum <= 80)
-                        throw new InvalidValueException("Port number must be an integer number greater than 80 and lower than 10000");
+                        throw new InvalidValueException(tr("validation.httpPort"));
                 }
             });
         }

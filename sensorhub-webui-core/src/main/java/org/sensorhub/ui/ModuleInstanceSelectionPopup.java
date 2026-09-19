@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.common.SensorHubException;
@@ -41,7 +43,7 @@ public class ModuleInstanceSelectionPopup extends Window
     
     public ModuleInstanceSelectionPopup(final Class<?> moduleType, final ModuleInstanceSelectionCallback callback)
     {
-        super("Select Module");
+        super(tr("dialog.selectModule"));
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(true);
         
@@ -52,7 +54,7 @@ public class ModuleInstanceSelectionPopup extends Window
         table.setColumnReorderingAllowed(true);        
         table.addContainerProperty(UIConstants.PROP_NAME, String.class, null);
         table.addContainerProperty(UIConstants.PROP_ID, String.class, null);
-        table.setColumnHeaders(new String[] {"Module Name", "ID"});
+        table.setColumnHeaders(new String[] {tr("column.moduleName"), tr("column.id")});
         table.setPageLength(10);
         table.setMultiSelect(false);
         
@@ -71,7 +73,7 @@ public class ModuleInstanceSelectionPopup extends Window
         layout.addComponent(table);
         
         // add OK button
-        Button okButton = new Button("OK");
+        Button okButton = new Button(tr("action.ok"));
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;
 
@@ -91,7 +93,7 @@ public class ModuleInstanceSelectionPopup extends Window
                 }
                     catch (Exception e)
                     {
-                        DisplayUtils.showErrorPopup("Cannot select module", e);
+                        DisplayUtils.showErrorPopup(tr("error.selectModule"), e);
                         return;
                     }
                 }

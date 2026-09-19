@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.datastore.command.CommandFilter;
@@ -35,11 +37,11 @@ public class DatabaseViewConfigForm extends GenericConfigForm
         if (propId.endsWith("includeFilter"))
         {
             Map<String, Class<?>> classList = new LinkedHashMap<>();
-            classList.put("System Filter", SystemFilter.Builder.class);
-            classList.put("Datastream Filter", DataStreamFilter.Builder.class);
-            classList.put("Command Stream Filter", CommandStreamFilter.Builder.class);
-            classList.put("Obs Filter", ObsFilter.Builder.class);
-            classList.put("Command Filter", CommandFilter.Builder.class);
+            classList.put(tr("filter.system"), SystemFilter.Builder.class);
+            classList.put(tr("filter.datastream"), DataStreamFilter.Builder.class);
+            classList.put(tr("filter.commandStream"), CommandStreamFilter.Builder.class);
+            classList.put(tr("filter.observation"), ObsFilter.Builder.class);
+            classList.put(tr("filter.command"), CommandFilter.Builder.class);
             return classList;
         }
         

@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -78,17 +80,17 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
         // sensor info panel
         if (module.isInitialized())
         {
-            Label sectionLabel = new Label("Data Source Info");
+            Label sectionLabel = new Label(tr("section.dataSourceInfo"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
-            addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
+            addComponent(new Label(tr("section.uniqueId", module.getUniqueIdentifier()), ContentMode.HTML));
             
             // display list of FOIs
             var fois = module.getCurrentFeaturesOfInterest().keySet();
             if (fois != null && !fois.isEmpty())
             {
-                addComponent(new Label("<b>FOI IDs:</b>", ContentMode.HTML)); 
+                addComponent(new Label(tr("section.foiIds"), ContentMode.HTML));
                 ListSelect list = new ListSelect();
                 list.setRows(4);
                 list.setNullSelectionAllowed(false);
@@ -104,7 +106,7 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                 addComponent(new Spacing());
                 HorizontalLayout titleBar = new HorizontalLayout();
                 titleBar.setSpacing(true);
-                sectionLabel = new Label("Outputs");
+                sectionLabel = new Label(tr("section.outputs"));
                 sectionLabel.addStyleName(STYLE_H3);
                 sectionLabel.addStyleName(STYLE_COLORED);
                 titleBar.addComponent(sectionLabel);
@@ -112,8 +114,8 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                 
                 // refresh button
                 final Timer timer = new Timer();
-                final Button refreshButton = new Button("Refresh");
-                refreshButton.setDescription("Toggle auto-refresh data once per second");
+                final Button refreshButton = new Button(tr("action.refresh"));
+                refreshButton.setDescription(tr("tooltip.autoRefresh"));
                 refreshButton.setIcon(REFRESH_ICON);
                 refreshButton.addStyleName(STYLE_SMALL);
                 refreshButton.addStyleName(STYLE_QUIET);
@@ -158,13 +160,13 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
                             };
                             timer.schedule(autoRefreshTask, 0L, 1000L);
                             refreshButton.setIcon(FontAwesome.TIMES);
-                            refreshButton.setCaption("Stop");
+                            refreshButton.setCaption(tr("action.stop"));
                         }
                         else
                         {
                             autoRefreshTask.cancel();
                             refreshButton.setIcon(REFRESH_ICON);
-                            refreshButton.setCaption("Refresh");
+                            refreshButton.setCaption(tr("action.refresh"));
                         }
                     }
                 });               
@@ -182,12 +184,12 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
         {
             if (module instanceof ISensorModule)
             {
-                obsPanel = newOutputsPanel("Observation Outputs", ((ISensorModule<?>) module).getObservationOutputs(), obsPanel);
-                statusPanel = newOutputsPanel("Status Outputs", ((ISensorModule<?>) module).getStatusOutputs(), statusPanel);
+                obsPanel = newOutputsPanel(tr("section.observationOutputs"), ((ISensorModule<?>) module).getObservationOutputs(), obsPanel);
+                statusPanel = newOutputsPanel(tr("section.statusOutputs"), ((ISensorModule<?>) module).getStatusOutputs(), statusPanel);
             }
             else
             {
-                obsPanel = newOutputsPanel("Outputs", module.getOutputs(), obsPanel);
+                obsPanel = newOutputsPanel(tr("section.outputs"), module.getOutputs(), obsPanel);
             }
         }
     }

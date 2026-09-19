@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -25,25 +27,22 @@ import com.vaadin.v7.ui.TreeTable;
 @SuppressWarnings({"deprecation"})
 public abstract class ResourceFilterTree<T extends ResourceFilter<?>, B extends ResourceFilterBuilder<B,?,T>> extends FilterTree<T, B>
 {
-    private static final Action ADD_IDS_ACTION = new Action("Add Resource IDs", new ThemeResource("icons/add.gif"));
-    private static final Action ADD_KEYWORDS_ACTION = new Action("Add Keywords", new ThemeResource("icons/add.gif"));
-    
-    private static final String INTERNALIDS_PROPERTY = "Internal IDs";
-    private static final String FULLTEXT_PROPERTY = "Keywords";
+    private final String internalIdsProperty = tr("filter.property.internalIds");
+    private final String fullTextProperty = tr("filter.property.keywords");
     
     
     static void getActions(Class<?> filterClass, List<Action> actions)
     {
-        actions.add(ADD_IDS_ACTION);
-        actions.add(ADD_KEYWORDS_ACTION);
+        actions.add(new Action(tr("action.addResourceIds"), new ThemeResource("icons/add.gif")));
+        actions.add(new Action(tr("action.addKeywords"), new ThemeResource("icons/add.gif")));
     }
     
     
     @Override
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, T filter)
     {
-        //toTreeItem(tree, parentId, INTERNALIDS_PROPERTY, filter.getInternalIDs());
-        toTreeItem(tree, parentId, FULLTEXT_PROPERTY, filter.getFullTextFilter());
+        //toTreeItem(tree, parentId, internalIdsProperty, filter.getInternalIDs());
+        toTreeItem(tree, parentId, fullTextProperty, filter.getFullTextFilter());
         return null;
     }
     
@@ -51,12 +50,12 @@ public abstract class ResourceFilterTree<T extends ResourceFilter<?>, B extends 
     @Override
     protected void fromTreeItem(TreeTable tree, Object itemId, String itemName, String itemValue, B builder)
     {
-        if (INTERNALIDS_PROPERTY.equals(itemName))
+        if (internalIdsProperty.equals(itemName))
         {
             var ids = readIdList(itemValue);
             builder.withInternalIDs(ids);
         }
-        else if (FULLTEXT_PROPERTY.equals(itemName))
+        else if (fullTextProperty.equals(itemName))
         {
             var kw = readStringList(itemValue);
             builder.withKeywords(kw);

@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import com.vaadin.event.Action;
@@ -23,8 +25,8 @@ import com.vaadin.v7.ui.TreeTable;
 @SuppressWarnings({"deprecation"})
 public class CommandFilterTree extends FilterTree<CommandFilter, CommandFilter.Builder>
 {
-    private static final String ISSUETIME_PROPERTY = "Issue Time";
-    private static final String CMDSTREAMFILTER_PROPERTY = "With Datastreams";
+    private final String issueTimeProperty = tr("filter.property.issueTime");
+    private final String commandStreamFilterProperty = tr("filter.property.commandStreams");
     
     
     static void getActions(Class<?> filterClass, List<Action> actions)
@@ -43,12 +45,12 @@ public class CommandFilterTree extends FilterTree<CommandFilter, CommandFilter.B
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, CommandFilter filter)
     {
         tree.setPageLength(tree.getPageLength()+3);
-        var id = tree.addItem(new Object[] {"Command Filter", null}, null);
+        var id = tree.addItem(new Object[] {tr("filter.command"), null}, null);
         if (parentId != null)
             tree.setParent(id, parentId);
         
-        toTreeItem(tree, id, ISSUETIME_PROPERTY, filter.getIssueTime());
-        toTreeItem(tree, id, CMDSTREAMFILTER_PROPERTY, DataStreamFilterTree::newFilter, filter.getCommandStreamFilter());
+        toTreeItem(tree, id, issueTimeProperty, filter.getIssueTime());
+        toTreeItem(tree, id, commandStreamFilterProperty, DataStreamFilterTree::newFilter, filter.getCommandStreamFilter());
         
         return id;
     }
@@ -66,12 +68,12 @@ public class CommandFilterTree extends FilterTree<CommandFilter, CommandFilter.B
     @Override
     protected void fromTreeItem(TreeTable tree, Object itemId, String itemName, String itemValue, CommandFilter.Builder builder)
     {
-        if (ISSUETIME_PROPERTY.equals(itemName))
+        if (issueTimeProperty.equals(itemName))
         {
             var tf = readTemporalFilter(itemValue);
             builder.withIssueTime(tf);
         }
-        else if (CMDSTREAMFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (commandStreamFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var rootItemId = tree.getChildren(itemId).iterator().next();
             var subTree = new CommandStreamFilterTree();

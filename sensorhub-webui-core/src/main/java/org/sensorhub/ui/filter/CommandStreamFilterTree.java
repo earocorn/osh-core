@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -24,11 +26,11 @@ import com.vaadin.v7.ui.TreeTable;
 @SuppressWarnings({"deprecation"})
 public class CommandStreamFilterTree extends ResourceFilterTree<CommandStreamFilter, CommandStreamFilter.Builder>
 {
-    private static final String CONTROLNAMES_PROPERTY = "Control Inputs";
-    private static final String TASKPROPS_PROPERTY = "Taskable Properties";
-    private static final String VALIDTIME_PROPERTY = "Valid Time";
-    private static final String SYSTEMFILTER_PROPERTY = "With Parent Systems";
-    private static final String COMMANDFILTER_PROPERTY = "With Commands";
+    private final String controlNamesProperty = tr("filter.property.controlInputs");
+    private final String taskablePropertiesProperty = tr("filter.property.taskableProperties");
+    private final String validTimeProperty = tr("filter.property.validTime");
+    private final String systemFilterProperty = tr("filter.property.parentSystems");
+    private final String commandFilterProperty = tr("filter.property.commands");
     
     
     static void getActions(Class<?> filterClass, List<Action> actions)
@@ -47,17 +49,17 @@ public class CommandStreamFilterTree extends ResourceFilterTree<CommandStreamFil
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, CommandStreamFilter filter)
     {
         tree.setPageLength(tree.getPageLength()+6);
-        var id = tree.addItem(new Object[] {"Command Channel Filter", null}, null);
+        var id = tree.addItem(new Object[] {tr("filter.commandStream"), null}, null);
         if (parentId != null)
             tree.setParent(id, parentId);
         
         super.renderFilterAsTree(tree, id, filter);
         
-        toTreeItem(tree, id, CONTROLNAMES_PROPERTY, filter.getControlInputNames());
-        toTreeItem(tree, id, TASKPROPS_PROPERTY, filter.getTaskableProperties());
-        toTreeItem(tree, id, VALIDTIME_PROPERTY, filter.getValidTimeFilter());
-        toTreeItem(tree, id, SYSTEMFILTER_PROPERTY, SystemFilterTree::newFilter, filter.getSystemFilter());
-        toTreeItem(tree, id, COMMANDFILTER_PROPERTY, CommandFilterTree::newFilter, filter.getCommandFilter());
+        toTreeItem(tree, id, controlNamesProperty, filter.getControlInputNames());
+        toTreeItem(tree, id, taskablePropertiesProperty, filter.getTaskableProperties());
+        toTreeItem(tree, id, validTimeProperty, filter.getValidTimeFilter());
+        toTreeItem(tree, id, systemFilterProperty, SystemFilterTree::newFilter, filter.getSystemFilter());
+        toTreeItem(tree, id, commandFilterProperty, CommandFilterTree::newFilter, filter.getCommandFilter());
         
         return id;
     }
@@ -77,28 +79,28 @@ public class CommandStreamFilterTree extends ResourceFilterTree<CommandStreamFil
     {
         super.fromTreeItem(tree, itemId, itemName, itemValue, builder);
         
-        if (CONTROLNAMES_PROPERTY.equals(itemName))
+        if (controlNamesProperty.equals(itemName))
         {
             var names = readStringList(itemValue);
             builder.withControlInputNames(names);
         }
-        else if (TASKPROPS_PROPERTY.equals(itemName))
+        else if (taskablePropertiesProperty.equals(itemName))
         {
             var uris = readStringList(itemValue);
             builder.withTaskableProperties(uris);
         }
-        else if (VALIDTIME_PROPERTY.equals(itemName))
+        else if (validTimeProperty.equals(itemName))
         {
             var tf = readTemporalFilter(itemValue);
             builder.withValidTime(tf);
         }
-        else if (SYSTEMFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (systemFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var subTree = new SystemFilterTree();
             var filter = subTree.buildFilterFromTree(tree, itemId);
             builder.withSystems(filter);
         }
-        else if (COMMANDFILTER_PROPERTY.equals(itemName) && Boolean.parseBoolean(itemValue))
+        else if (commandFilterProperty.equals(itemName) && Boolean.parseBoolean(itemValue))
         {
             var subTree = new CommandFilterTree();
             var filter = subTree.buildFilterFromTree(tree, itemId);

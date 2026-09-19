@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -53,8 +55,8 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings({ "serial", "deprecation" })
 public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseModule<?>> implements IModuleAdminPanel<IObsSystemDatabaseModule<?>>
 {
-    private static final Action DELETE_SYSTEM_ACTION = new Action("Delete All System Data", new ThemeResource("icons/module_delete.png"));
-    private static final Action DELETE_OBS_ACTION = new Action("Delete System Observations", new ThemeResource("icons/module_delete.png"));
+    private Action deleteSystemAction;
+    private Action deleteObsAction;
     
     VerticalLayout layout;
     SystemSearchList systemTable;
@@ -65,6 +67,8 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
     public void build(final MyBeanItem<ModuleConfig> beanItem, final IObsSystemDatabaseModule<?> db)
     {
         super.build(beanItem, db);
+        deleteSystemAction = new Action(tr("action.deleteSystemData"), new ThemeResource("icons/module_delete.png"));
+        deleteObsAction = new Action(tr("action.deleteObservations"), new ThemeResource("icons/module_delete.png"));
         
         // assign default database number if not set and module hasn't been initialized yet
         if (!db.isInitialized() && db.getConfiguration().databaseNum == null)
@@ -96,7 +100,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
             //layout.addComponent(new Label(""));
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Database Content");
+            Label sectionLabel = new Label(tr("section.databaseContent"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -115,7 +119,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                     }
                     catch (Exception e)
                     {
-                        DisplayUtils.showErrorPopup("Unexpected error when selecting system", e);
+                        DisplayUtils.showErrorPopup(tr("error.selectSystem"), e);
                     }
                 }
             });
@@ -126,8 +130,8 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                 public Action[] getActions(Object target, Object sender)
                 {
                     List<Action> actions = new ArrayList<>(10);
-                    actions.add(DELETE_SYSTEM_ACTION);
-                    actions.add(DELETE_OBS_ACTION);
+                    actions.add(deleteSystemAction);
+                    actions.add(deleteObsAction);
                     return actions.toArray(new Action[0]);
                 }
 
@@ -136,9 +140,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                 {
                     String uid = (String)((TreeTable)sender).getValue();
                     
-                    if (action == DELETE_SYSTEM_ACTION)
+                    if (action == deleteSystemAction)
                     {
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data and metadata associated with system:<br/><b>" + uid + "?</b>");
+                        final ConfirmDialog popup = new ConfirmDialog(tr("dialog.deleteSystem", uid));
                         popup.addCloseListener(event -> {
                             if (popup.isConfirmed())
                             {
@@ -157,9 +161,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                         });
                         systemTable.getUI().addWindow(popup);
                     }
-                    else if (action == DELETE_OBS_ACTION)
+                    else if (action == deleteObsAction)
                     {
-                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all observations from system:<br/><b>" + uid + "?</b>");
+                        final ConfirmDialog popup = new ConfirmDialog(tr("dialog.deleteObservations", uid));
                         popup.addCloseListener(event -> {
                             if (popup.isConfirmed())
                             {

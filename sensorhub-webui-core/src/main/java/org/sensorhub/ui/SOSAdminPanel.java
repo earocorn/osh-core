@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.module.ModuleConfig;
@@ -97,7 +99,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
             //ComponentContainer parent = (ComponentContainer)configTabs.getTab(0).getComponent();
             
             VerticalLayout parent = new VerticalLayout();
-            configTabs.addTab(parent, "Test Links");
+            configTabs.addTab(parent, tr("section.testLinks"));
             LinkItem linkItem;
             baseUrl += "?service=SOS&version=2.0&request=";
             
@@ -108,12 +110,12 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
             
             // link to capabilities            
             String href = baseUrl + "GetCapabilities";
-            linkItem = new LinkItem("Service Capabilities", "XML", href);
+            linkItem = new LinkItem(tr("link.serviceCapabilities"), "XML", href);
             topLevelLinks.addComponent(linkItem);
             
             // all fois
             href = baseUrl + "GetFeatureOfInterest";
-            linkItem = new LinkItem("All Features of Interest", "XML", href);
+            linkItem = new LinkItem(tr("link.allFeaturesOfInterest"), "XML", href);
             href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
             linkItem.addLinkItem("JSON", href);
             topLevelLinks.addComponent(linkItem);
@@ -133,14 +135,14 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 
                 // sensor description
                 href = baseUrl + "DescribeSensor&procedure=" + offering.getMainProcedure();
-                linkItem = new LinkItem("Sensor Description", "XML", href);
+                linkItem = new LinkItem(tr("link.sensorDescription"), "XML", href);
                 href += "&procedureDescriptionFormat=" + SOSOfferingCapabilities.FORMAT_SML2_JSON;
                 linkItem.addLinkItem("JSON", href);
                 tabLayout.addComponent(linkItem);
                 
                 // fois
                 href = baseUrl + "GetFeatureOfInterest&procedure=" + offering.getMainProcedure();
-                linkItem = new LinkItem("Features of Interest", "XML", href);
+                linkItem = new LinkItem(tr("link.featuresOfInterest"), "XML", href);
                 href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                 linkItem.addLinkItem("JSON", href);
                 tabLayout.addComponent(linkItem);
@@ -159,7 +161,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                     
                     // result template
                     href = baseUrl + "GetResultTemplate&offering=" + offering.getIdentifier() + "&observedProperty=" + obs;
-                    linkItem = new LinkItem("Record Description", "XML", href);
+                    linkItem = new LinkItem(tr("link.recordDescription"), "XML", href);
                     href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                     linkItem.addLinkItem("JSON", href);
                     tabLayout.addComponent(linkItem);
@@ -167,7 +169,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                     // latest obs
                     href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
                                      "&temporalFilter=phenomenonTime,now";
-                    linkItem = new LinkItem("Latest Measurements", "RAW", href);
+                    linkItem = new LinkItem(tr("link.latestMeasurements"), "RAW", href);
                     href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                     linkItem.addLinkItem("JSON", href);
                     tabLayout.addComponent(linkItem);
@@ -175,7 +177,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                     // live feed
                     href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
                                      "&temporalFilter=phenomenonTime,now/" + Instant.now().plus(1, ChronoUnit.HOURS);
-                    linkItem = new LinkItem("Live Feed", "RAW", href);
+                    linkItem = new LinkItem(tr("link.liveFeed"), "RAW", href);
                     href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                     linkItem.addLinkItem("JSON", href);
                     tabLayout.addComponent(linkItem);
@@ -183,7 +185,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                     // historical data
                     href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
                                      "&temporalFilter=phenomenonTime," + Instant.now().minus(1, ChronoUnit.MINUTES) + "/now";
-                    linkItem = new LinkItem("Historical Data", "RAW", href);
+                    linkItem = new LinkItem(tr("link.historicalData"), "RAW", href);
                     href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                     linkItem.addLinkItem("JSON", href);
                     tabLayout.addComponent(linkItem);

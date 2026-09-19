@@ -14,6 +14,8 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -92,7 +94,7 @@ public class DownloadModulesPopup extends Window
     
     public DownloadModulesPopup()
     {
-        super("Download Add-on Modules");
+        super(tr("dialog.downloadAddons"));
         setModal(true);
                 
         final VerticalLayout layout = new VerticalLayout();
@@ -104,7 +106,7 @@ public class DownloadModulesPopup extends Window
         ProgressBar pb = new ProgressBar();
         pb.setIndeterminate(true);
         loading.addComponent(pb);
-        loading.addComponent(new Label("Loading Package Information..."));
+        loading.addComponent(new Label(tr("status.loadingPackages")));
         layout.addComponent(loading);
         
         setContent(layout);
@@ -167,7 +169,7 @@ public class DownloadModulesPopup extends Window
                         @Override
                         public void run()
                         {
-                            DisplayUtils.showErrorPopup("Cannot fetch OSH package list", e);
+                            DisplayUtils.showErrorPopup(tr("error.fetchPackages"), e);
                             DownloadModulesPopup.this.close();
                             ui.push();
                         }
@@ -196,7 +198,7 @@ public class DownloadModulesPopup extends Window
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_VERSION, String.class, null);
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_DESC, String.class, null);
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_AUTHOR, String.class, null);
-                    table.setColumnHeaders(new String[] {"Package", "OSH Version", "Description", "Author"});
+                    table.setColumnHeaders(new String[] {tr("column.package"), tr("column.oshVersion"), tr("column.description"), tr("column.author")});
                     table.setColumnWidth(ModuleTypeSelectionPopup.PROP_NAME, 300);
                     table.setColumnExpandRatio(ModuleTypeSelectionPopup.PROP_DESC, 10);
                     layout.addComponent(table, 0);

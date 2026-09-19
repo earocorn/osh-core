@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,7 +67,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
     
     public ModuleTypeSelectionPopup(final Class<?> moduleType, final ModuleTypeSelectionCallback callback)
     {
-        super("Select Module Type");
+        super(tr("dialog.selectModuleType"));
         
         ModuleRegistry registry = ((AdminUI)UI.getCurrent()).getParentHub().getModuleRegistry();
         Collection<IModuleProvider> providers = new ArrayList<>();
@@ -83,7 +85,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
     
     public ModuleTypeSelectionPopup(Collection<IModuleProvider> moduleProviders, final ModuleTypeSelectionCallback callback)
     {
-        super("Select Module Type");
+        super(tr("dialog.selectModuleType"));
         buildDialog(moduleProviders, callback);
     }
     
@@ -103,17 +105,18 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty(PROP_DESC, String.class, null);
         table.addContainerProperty(PROP_AUTHOR, String.class, null);
-        table.setColumnHeaders("Module Type", "Version", "Description", "Author");
+        table.setColumnHeaders(tr("column.moduleType"), tr("column.version"), tr("column.description"), tr("column.author"));
         table.setPageLength(10);
         table.setMultiSelect(false);
         
         final Map<Object, IModuleProvider> providerMap = new HashMap<>();
         for (IModuleProvider provider: moduleProviders)
         {
+            Class<?> configClass = provider.getModuleConfigClass();
             Object id = table.addItem(new Object[] {
-                    provider.getModuleName(),
+                    AdminI18n.trConfig(configClass, "module.name", provider.getModuleName()),
                     provider.getModuleVersion(),
-                    provider.getModuleDescription(),
+                    AdminI18n.trConfig(configClass, "module.description", provider.getModuleDescription()),
                     provider.getProviderName()}, null);
             providerMap.put(id, provider);
         }
@@ -123,7 +126,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         var osgiCtx = ((AdminUI)UI.getCurrent()).getParentHub().getOsgiContext();
         if (osgiCtx != null)
         {
-            Button installNew = new Button("Install More Modules...");
+            Button installNew = new Button(tr("action.installMoreModules"));
             installNew.setStyleName(STYLE_LINK);
             installNew.addStyleName(UIConstants.STYLE_SMALL);
             layout.addComponent(installNew);
@@ -135,7 +138,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                 {
                     var config = ((AdminUI)UI.getCurrent()).getParentModule().getConfiguration();
                     if (config.bundleRepoUrls == null || config.bundleRepoUrls.isEmpty())
-                        DisplayUtils.showErrorPopup("No bundle repository URL configured", null);
+                        DisplayUtils.showErrorPopup(tr("error.noRepository"), null);
                     else
                         getUI().addWindow(new DownloadOsgiBundlesPopup(config.bundleRepoUrls, osgiCtx));
                     close();
@@ -151,7 +154,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         
         // OK button
         final ModuleRegistry registry = ((AdminUI)UI.getCurrent()).getParentHub().getModuleRegistry();
-        Button okButton = new Button("OK");
+        Button okButton = new Button(tr("action.ok"));
         okButton.addStyleName(UIConstants.STYLE_SMALL);
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;
@@ -186,7 +189,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                 }
                 catch (Exception e)
                 {
-                    DisplayUtils.showErrorPopup("Cannot select module", e);
+                    DisplayUtils.showErrorPopup(tr("error.selectModule"), e);
                 }
             }
         });
@@ -196,7 +199,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         if (callback instanceof ModuleTypeSelectionWithClearCallback)
         {
             // add clear button
-            Button clearButton = new Button("Select None");
+            Button clearButton = new Button(tr("action.selectNone"));
             clearButton.addStyleName(UIConstants.STYLE_SMALL);
             clearButton.addClickListener(new Button.ClickListener() {
                 private static final long serialVersionUID = 1L;

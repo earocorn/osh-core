@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import net.opengis.swe.v20.Category;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataChoice;
@@ -148,7 +150,7 @@ public abstract class SWEEditForm extends SWECommonForm
         else if (component instanceof DataArray)
         {
             HorizontalLayout layout = getCaptionLayout(component);
-            layout.addComponent(new Label("Array component not supported"));
+            layout.addComponent(new Label(tr("error.arrayUnsupported")));
             return layout;
         }
         else

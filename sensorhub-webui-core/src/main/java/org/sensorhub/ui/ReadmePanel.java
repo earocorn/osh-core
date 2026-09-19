@@ -1,5 +1,7 @@
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.ContentMode;
@@ -11,6 +13,10 @@ import org.sensorhub.ui.data.MyBeanItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class ReadmePanel extends VerticalLayout {
 
@@ -20,7 +26,6 @@ public class ReadmePanel extends VerticalLayout {
 
     @JavaScript({"vaadin://js/jquery.min.js", "vaadin://js/lodash.min.js", "vaadin://js/backbone.min.js", "vaadin://js/joint.js", "vaadin://js/marked.min.js", "vaadin://js/readme.js"})
     public class ReadmeJS extends AbstractJavaScriptComponent {
-        private InputStream readmeIs;
         private static final Logger logger = LoggerFactory.getLogger(ReadmePanel.class);
         private boolean hasContent = false;
 
@@ -29,29 +34,23 @@ public class ReadmePanel extends VerticalLayout {
         }
 
         private ReadmeJS(final MyBeanItem<ModuleConfig> beanItem) {
-            try {
-                InputStream readmeIs = beanItem.getBean().getClass().getResourceAsStream("README.md");
-                //logger.debug("readmeIs: {}", beanItem.getResource(""));
-
-                if (readmeIs == null) {
+            try (InputStream readmeIs = openLocalizedReadme(
+                beanItem.getBean().getClass(), AdminI18n.getCurrentLocale()))
+            {
+                if (readmeIs == null)
+                {
                     hasContent = false;
-                } else {
+                }
+                else
+                {
                     hasContent = true;
-                    getState().readmeText = new String(readmeIs.readAllBytes());
+                    getState().readmeText = new String(readmeIs.readAllBytes(), StandardCharsets.UTF_8);
                     markAsDirty();
                 }
-
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 logger.error("Error reading readme file", e);
-            } finally {
-                try {
-                    if (readmeIs != null) {
-                        readmeIs.close();
-                    }
-                } catch (IOException e) {
-                    logger.error("Error closing readme stream", e);
-                }
-                readmeIs = null;
             }
         }
 
@@ -74,12 +73,12 @@ public class ReadmePanel extends VerticalLayout {
             // Otherwise, display instructions for adding a readme file
             var header = new HorizontalLayout();
             header.setSpacing(true);
-            Label title = new Label("No README");
+            Label title = new Label(tr("section.noReadme"));
             title.addStyleName(UIConstants.STYLE_H2);
             header.addComponent(title);
             addComponent(header);
 
-            Button detailsBtn = new Button("Detailed Instructions");
+            Button detailsBtn = new Button(tr("action.detailedInstructions"));
             detailsBtn.setIcon(FontAwesome.CARET_RIGHT);
             //detailsBtn.setWidth(100.0f, Unit.PERCENTAGE);
 
@@ -111,24 +110,53 @@ public class ReadmePanel extends VerticalLayout {
 
     private String generateInstructions(final MyBeanItem<ModuleConfig> beanItem) {
         String packagePath = beanItem.getBean().getClass().getPackage().getName().replace(".", "/");
-        return "<p>A README file could not be found for this module.</p>\n" +
-                "<p>If this is a mistake, please be sure that the module contains a file titled <code>README.md</code> within its resources directory.<br>\n" +
-                "<code>src/main/resources/" +
-                packagePath +
-                "/README.md</code></p>" +
-                "<p>Add the following to the module's build.gradle to automatically copy the readme into resources.<br>\n" +
-                "If the readme is not in the module's root directory, adjustments may be necessary.</p>\n" +
+        String resourcePath = "src/main/resources/" + packagePath + "/i18n";
+        List<String> localizedReadmes = new ArrayList<>();
+        StringBuilder readmeFiles = new StringBuilder(resourcePath + "/README.md\n");
+        for (Locale locale: AdminI18n.getSupportedLocales())
+        {
+            if (Locale.ENGLISH.getLanguage().equals(locale.getLanguage()))
+                continue;
+
+            String fileName = "README_" + locale.getLanguage() + ".md";
+            localizedReadmes.add("<code>" + fileName + "</code>");
+            readmeFiles.append(resourcePath).append('/').append(fileName).append('\n');
+        }
+
+        return "<p>" + tr("readme.missing.intro") + "</p>\n" +
+                "<p>" + tr("readme.missing.location", "<code>" + resourcePath + "/README.md</code>") + "<br>\n" +
+                tr("readme.missing.localized", String.join(", ", localizedReadmes)) + "</p>" +
+                "<p>" + tr("readme.missing.build") + "</p>\n" +
                 "<pre>\n" +
-                "tasks.register('copyReadme', Copy) {\n" +
-                "\tfrom \"${projectDir}/README.md\"\n" +
-                "\tinto \"${projectDir}/src/main/resources/" +
-                packagePath + "\"\n" +
-                "\tonlyIf { file(\"${projectDir}/README.md\").exists() }\n" +
-                "}\n" +
-                "\n" +
-                "processResources {\n" +
-                "\tdependsOn copyReadme\n" +
-                "}\n" +
+                readmeFiles +
                 "</pre>\n";
+    }
+
+
+    static InputStream openLocalizedReadme(Class<?> moduleConfigClass, Locale locale)
+    {
+        for (String resourceName: getReadmeCandidates(locale))
+        {
+            InputStream input = moduleConfigClass.getResourceAsStream(resourceName);
+            if (input != null)
+                return input;
+        }
+
+        return null;
+    }
+
+
+    static List<String> getReadmeCandidates(Locale locale)
+    {
+        String language = AdminI18n.normalize(locale).getLanguage();
+        List<String> candidates = new ArrayList<>();
+        if (!Locale.ENGLISH.getLanguage().equals(language))
+        {
+            candidates.add("i18n/README_" + language + ".md");
+            candidates.add("README_" + language + ".md");
+        }
+        candidates.add("i18n/README.md");
+        candidates.add("README.md");
+        return candidates;
     }
 }
