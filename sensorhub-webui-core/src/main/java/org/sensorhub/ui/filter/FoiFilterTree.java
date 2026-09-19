@@ -14,6 +14,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.filter;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.List;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import com.vaadin.event.Action;
@@ -40,7 +42,7 @@ public class FoiFilterTree extends FeatureFilterBaseTree<FoiFilter, FoiFilter.Bu
     protected Object renderFilterAsTree(TreeTable tree, Object parentId, FoiFilter filter)
     {
         tree.setPageLength(tree.getPageLength()+5);
-        var id = tree.addItem(new Object[] {"Foi Filter", null}, null);
+        var id = tree.addItem(new Object[] {tr("filter.foi"), null}, null);
         if (parentId != null)
             tree.setParent(id, parentId);
         

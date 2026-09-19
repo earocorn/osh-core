@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import org.sensorhub.api.module.IModule;
@@ -87,7 +89,7 @@ public class DisplayUtils
         }
         
         new Notification(
-                "Error<br/>",
+                tr("error.title") + "<br/>",
                 msg,
                 Notification.Type.ERROR_MESSAGE, true)
                 .show(UI.getCurrent().getPage());
@@ -120,7 +122,7 @@ public class DisplayUtils
         String stackTrace = "<pre>" + writer.toString() + "</pre>";
         
         new Notification(
-                "Error<br/>",
+                tr("error.title") + "<br/>",
                 stackTrace,
                 Notification.Type.ERROR_MESSAGE, true)
                 .show(UI.getCurrent().getPage());
@@ -136,7 +138,7 @@ public class DisplayUtils
     private static String getDependencyErrorMessage(Class<?> clazz)
     {
         StringBuilder msg = new StringBuilder();
-        msg.append("A class could not be found at runtime.\nPlease check that the following dependencies are installed:\n\n");
+        msg.append(tr("error.dependencyMissing")).append("\n\n");
         for (String dep: ModuleUtils.getBundleDependencies(clazz))
             msg.append(dep).append('\n');
         return msg.toString();

@@ -14,6 +14,8 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -284,7 +286,7 @@ public class ProcessFlowDiagram extends AbstractJavaScriptComponent
     
     protected void editValues(DataComponent component)
     {
-        Window popup = new Window("Set Parameter");
+        Window popup = new Window(tr("section.setParameter"));
         VerticalLayout content = new VerticalLayout();
         popup.setContent(content);
         popup.center();

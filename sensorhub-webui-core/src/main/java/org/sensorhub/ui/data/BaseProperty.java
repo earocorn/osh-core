@@ -58,6 +58,18 @@ public abstract class BaseProperty<T> extends AbstractProperty<T>
         else
             return null;
     }
+
+
+    public Class<?> getDeclaringClass()
+    {
+        return f.getDeclaringClass();
+    }
+
+
+    public String getFieldName()
+    {
+        return f.getName();
+    }
     
     
     public boolean isRequired()

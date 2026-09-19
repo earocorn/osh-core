@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
 import org.sensorhub.ui.api.UIConstants;
@@ -37,12 +39,12 @@ public class SystemSelectionPopup extends Window
     
     public SystemSelectionPopup(int width, final ValueCallback callback, IObsSystemDatabase db)
     {
-        super("Select an Observing System");
+        super(tr("dialog.selectSystem"));
         VerticalLayout layout = new VerticalLayout();
         layout.setMargin(true);
         
         // manual entry text box
-        TextField manualEntry = new TextField("Manual Entry");
+        TextField manualEntry = new TextField(tr("section.manualEntry"));
         manualEntry.setWidth(300, Unit.PIXELS);
         manualEntry.addStyleName(UIConstants.STYLE_SMALL);
         manualEntry.addValueChangeListener(new ValueChangeListener() {
@@ -73,7 +75,7 @@ public class SystemSelectionPopup extends Window
         layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
         
         // add OK button
-        Button okButton = new Button("OK");
+        Button okButton = new Button(tr("action.ok"));
         okButton.addStyleName(UIConstants.STYLE_SMALL);
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;

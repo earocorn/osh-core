@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +63,7 @@ public class ProcessSelectionPopup extends Window implements UIConstants
     
     public ProcessSelectionPopup(Collection<IProcessProvider> providers, final ProcessSelectionCallback callback)
     {
-        super("Select Process Type");
+        super(tr("dialog.selectProcessType"));
         setWidth(1000.0f, Unit.PIXELS);
         buildDialog(providers, callback);
     }
@@ -81,7 +83,7 @@ public class ProcessSelectionPopup extends Window implements UIConstants
         table.addContainerProperty(PROP_DESC, String.class, null);
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty(PROP_AUTHOR, String.class, null);
-        table.setColumnHeaders(new String[] {"Name", "Description", "Version", "Author"});
+        table.setColumnHeaders(new String[] {tr("column.name"), tr("column.description"), tr("column.version"), tr("column.author")});
         table.setColumnWidth(PROP_NAME, 250);
         table.setPageLength(10);
         table.setMultiSelect(false);
@@ -113,7 +115,7 @@ public class ProcessSelectionPopup extends Window implements UIConstants
         layout.addComponent(table);
         
         // link to more modules
-        Button installNew = new Button("Install More Packages...");
+        Button installNew = new Button(tr("action.installMorePackages"));
         installNew.setStyleName(STYLE_LINK);
         layout.addComponent(installNew);
         layout.setComponentAlignment(installNew, Alignment.MIDDLE_RIGHT);
@@ -134,12 +136,12 @@ public class ProcessSelectionPopup extends Window implements UIConstants
         layout.setComponentAlignment(buttons, Alignment.MIDDLE_LEFT);
         
         // name text box
-        buttons.addComponent(new Label("Process Name:"));
+        buttons.addComponent(new Label(tr("section.processName")));
         final TextField textBox = new TextField();
         buttons.addComponent(textBox);
         
         // OK button
-        Button okButton = new Button("OK");
+        Button okButton = new Button(tr("action.ok"));
         okButton.addClickListener(new Button.ClickListener() {
             @Override
             public void buttonClick(ClickEvent event)
@@ -149,7 +151,7 @@ public class ProcessSelectionPopup extends Window implements UIConstants
                 
                 if (name == null || !PROCESS_NAME_REGEX.matcher(name).matches())
                 {
-                    DisplayUtils.showErrorPopup("Please enter a valid process name", null);
+                    DisplayUtils.showErrorPopup(tr("error.validProcessName"), null);
                     return;
                 }
                 
@@ -163,7 +165,7 @@ public class ProcessSelectionPopup extends Window implements UIConstants
                     }
                     catch (Exception e)
                     {
-                        DisplayUtils.showErrorPopup("Cannot add process", e);
+                        DisplayUtils.showErrorPopup(tr("error.addProcess"), e);
                         return;
                     }                        
                 }

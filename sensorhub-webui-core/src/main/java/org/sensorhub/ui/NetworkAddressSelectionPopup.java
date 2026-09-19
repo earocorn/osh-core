@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Collection;
 import org.sensorhub.api.comm.ICommNetwork;
 import org.sensorhub.api.comm.ICommNetwork.NetworkType;
@@ -40,8 +42,8 @@ public class NetworkAddressSelectionPopup extends Window
     
     public NetworkAddressSelectionPopup(final NetworkType addressType, final AddressSelectionCallback callback)
     {
-        super("Select Network Host");
-        
+        super(tr("dialog.selectNetworkHost"));
+
         setWidth(60.f, Unit.PERCENTAGE);
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(true);
@@ -61,7 +63,7 @@ public class NetworkAddressSelectionPopup extends Window
         layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
         
         // add useAddress button
-        Button okAddressButton = new Button("Use Address");
+        Button okAddressButton = new Button(tr("action.useAddress"));
         okAddressButton.addClickListener(new Button.ClickListener() {
             @Override
             public void buttonClick(ClickEvent event)
@@ -70,9 +72,9 @@ public class NetworkAddressSelectionPopup extends Window
             }
         });
         buttons.addComponent(okAddressButton);
-        
+
         // add useName button
-        Button okNameButton = new Button("Use Name");
+        Button okNameButton = new Button(tr("action.useName"));
         okNameButton.addClickListener(new Button.ClickListener() {
             @Override
             public void buttonClick(ClickEvent event)

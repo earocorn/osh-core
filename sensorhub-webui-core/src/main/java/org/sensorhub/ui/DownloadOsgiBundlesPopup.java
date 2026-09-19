@@ -14,6 +14,8 @@ Copyright (C) 2012-2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +60,7 @@ public class DownloadOsgiBundlesPopup extends Window
     
     public DownloadOsgiBundlesPopup(Collection<String> repoUrls, BundleContext osgiCtx)
     {
-        super("Download Add-on Modules");
+        super(tr("dialog.downloadAddons"));
         Asserts.checkNotNull(repoUrls, "repoUrls");
         setModal(true);
                 
@@ -71,7 +73,7 @@ public class DownloadOsgiBundlesPopup extends Window
         ProgressBar pb = new ProgressBar();
         pb.setIndeterminate(true);
         loading.addComponent(pb);
-        loading.addComponent(new Label("Loading Bundles Information..."));
+        loading.addComponent(new Label(tr("status.loadingBundles")));
         layout.addComponent(loading);
         
         // buttons bar
@@ -81,11 +83,11 @@ public class DownloadOsgiBundlesPopup extends Window
         layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
         
         // OK button
-        Button installBtn = new Button("Install Selected");
+        Button installBtn = new Button(tr("action.installSelected"));
         installBtn.addStyleName(UIConstants.STYLE_SMALL);
         buttons.addComponent(installBtn);
         
-        Button cancelBtn = new Button("Cancel");
+        Button cancelBtn = new Button(tr("action.cancel"));
         cancelBtn.addStyleName(UIConstants.STYLE_SMALL);
         cancelBtn.addClickListener(event -> DownloadOsgiBundlesPopup.this.close());
         buttons.addComponent(cancelBtn);
@@ -137,14 +139,14 @@ public class DownloadOsgiBundlesPopup extends Window
                             // install and start all bundles
                             resolver.deploy(Resolver.START);
                             DownloadOsgiBundlesPopup.this.close();
-                            DisplayUtils.showOperationSuccessful("Bundles successfully installed<br/><br/>"
+                            DisplayUtils.showOperationSuccessful(tr("status.bundlesInstalled") + "<br/><br/>"
                                 + String.join("<br/>", installedList), Notification.DELAY_FOREVER);
                         }
                         else
                         {
                             for (var req: resolver.getUnsatisfiedRequirements())
                                 log.error("Unable to resolve: " + req);
-                            DisplayUtils.showErrorPopup("Error installing bundles. See log for details", null);
+                            DisplayUtils.showErrorPopup(tr("error.installBundles"), null);
                         }
                     }
                 });
@@ -159,7 +161,7 @@ public class DownloadOsgiBundlesPopup extends Window
             {
                 final UI ui = getUI();
                 ui.access(() -> {
-                    DisplayUtils.showErrorPopup("Cannot fetch OSH bundle list", e);
+                    DisplayUtils.showErrorPopup(tr("error.fetchBundles"), e);
                     DownloadOsgiBundlesPopup.this.close();
                     ui.push();
                 });
@@ -184,7 +186,7 @@ public class DownloadOsgiBundlesPopup extends Window
                 table.addContainerProperty(ModuleTypeSelectionPopup.PROP_DESC, String.class, null);
                 table.addContainerProperty(ModuleTypeSelectionPopup.PROP_VERSION, String.class, null);
                 table.addContainerProperty(ModuleTypeSelectionPopup.PROP_NAME, String.class, null);
-                table.setColumnHeaders(new String[] {"Description", "Version", "Bundle Name"});
+                table.setColumnHeaders(new String[] {tr("column.description"), tr("column.version"), tr("column.bundleName")});
                 table.setVisibleColumns(
                     ModuleTypeSelectionPopup.PROP_DESC,
                     ModuleTypeSelectionPopup.PROP_VERSION,
@@ -193,7 +195,7 @@ public class DownloadOsgiBundlesPopup extends Window
                 //table.setColumnExpandRatio(ModuleTypeSelectionPopup.PROP_DESC, 10);
                 layout.addComponent(table, 0);
                 
-                var searchBox = new SearchBox("Search", null);
+                var searchBox = new SearchBox(tr("action.search"), null);
                 searchBox.focus();
                 searchBox.addToParent(layout, 0);
                 searchBox.addTextChangeListener(new TextChangeListener() {

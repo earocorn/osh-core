@@ -14,6 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.concurrent.Callable;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
@@ -143,14 +145,14 @@ public class FederatedDbModuleAdapter implements IObsSystemDatabaseModule<Databa
     @Override
     public String getName()
     {
-        return "Federated Database";
+        return tr("module.federatedDatabase.name");
     }
 
 
     @Override
     public String getDescription()
     {
-        return "The federated database that provides access to all observation data and system metadata on this hub";
+        return tr("module.federatedDatabase.description");
     }
 
 

@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.service.sps.SPSService;
 import org.sensorhub.ui.api.IModuleAdminPanel;
@@ -93,7 +95,7 @@ public class SPSAdminPanel extends DefaultModulePanel<SPSService> implements IMo
             //ComponentContainer parent = (ComponentContainer)configTabs.getTab(0).getComponent();
             
             VerticalLayout parent = new VerticalLayout();
-            configTabs.addTab(parent, "Test Links");
+            configTabs.addTab(parent, tr("section.testLinks"));
             LinkItem linkItem;
             baseUrl += "?service=SPS&version=2.0&request=";
             
@@ -104,7 +106,7 @@ public class SPSAdminPanel extends DefaultModulePanel<SPSService> implements IMo
             
             // link to capabilities            
             String href = baseUrl + "GetCapabilities";
-            linkItem = new LinkItem("Service Capabilities", "XML", href);
+            linkItem = new LinkItem(tr("link.serviceCapabilities"), "XML", href);
             topLevelLinks.addComponent(linkItem);
             
             // offering links in tabs
@@ -122,12 +124,12 @@ public class SPSAdminPanel extends DefaultModulePanel<SPSService> implements IMo
                 
                 // sensor description
                 href = baseUrl + "DescribeSensor&procedure=" + offering.getMainProcedure();
-                linkItem = new LinkItem("Sensor Description", "XML", href);
+                linkItem = new LinkItem(tr("link.sensorDescription"), "XML", href);
                 tabLayout.addComponent(linkItem);
                 
                 // fois
                 href = baseUrl + "DescribeTasking&procedure=" + offering.getMainProcedure();
-                linkItem = new LinkItem("Tasking Parameters", "XML", href);
+                linkItem = new LinkItem(tr("link.taskingParameters"), "XML", href);
                 tabLayout.addComponent(linkItem);
                 
                 

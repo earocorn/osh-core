@@ -14,6 +14,8 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -185,10 +187,10 @@ public class DatabaseStreamPanel extends VerticalLayout
         timeRangeLabel.addStyleName(UIConstants.STYLE_SMALL);
         updateTimeRange();
         layout.addComponent(timeRangeLabel);
-        layout.setCaption("Time Range:");
+        layout.setCaption(tr("section.timeRange"));
         
         final Button btn = new Button(FontAwesome.BAR_CHART);
-        btn.setDescription(detailChart == null ? "Show Histogram" : "Hide Histogram");
+        btn.setDescription(detailChart == null ? tr("tooltip.showHistogram") : tr("tooltip.hideHistogram"));
         btn.setEnabled(dsInfo.getPhenomenonTimeRange() != null);
         btn.addStyleName(UIConstants.STYLE_SMALL);
         btn.addStyleName(UIConstants.STYLE_QUIET);
@@ -206,13 +208,13 @@ public class DatabaseStreamPanel extends VerticalLayout
                     Component timeline = buildHistogram();
                     int idx = panelLayout.getComponentIndex(layout.getParent());
                     panelLayout.addComponent(timeline, idx+1);
-                    btn.setDescription("Hide Histogram");
+                    btn.setDescription(tr("tooltip.hideHistogram"));
                 }
                 else
                 {
                     // remove histogram
                     panelLayout.removeComponent(detailChart.getParent());
-                    btn.setDescription("Show Histogram");
+                    btn.setDescription(tr("tooltip.showHistogram"));
                     detailChart = null;
                     navigatorChart = null;
                 }
@@ -220,8 +222,8 @@ public class DatabaseStreamPanel extends VerticalLayout
         });
         
         // refresh button
-        Button refreshButton = new Button("Refresh");
-        refreshButton.setDescription("Reload data from database");
+        Button refreshButton = new Button(tr("action.refresh"));
+        refreshButton.setDescription(tr("tooltip.reloadDatabase"));
         refreshButton.setIcon(UIConstants.REFRESH_ICON);
         refreshButton.addStyleName(UIConstants.STYLE_SMALL);
         refreshButton.addStyleName(UIConstants.STYLE_QUIET);
@@ -283,12 +285,12 @@ public class DatabaseStreamPanel extends VerticalLayout
         
         if (!foiEntries.isEmpty())
         {
-            final ComboBox selectBox = new ComboBox("FOIs");
+            final ComboBox selectBox = new ComboBox(tr("section.fois"));
             selectBox.setNullSelectionAllowed(false);
             selectBox.addStyleName(UIConstants.STYLE_SMALL);
             selectBox.setWidth(50, Unit.EM);
             selectBox.addItem(BigId.NONE);
-            selectBox.setItemCaption(BigId.NONE, "ALL");
+            selectBox.setItemCaption(BigId.NONE, tr("label.all"));
             foiEntries.stream().forEach(f -> {
                 selectBox.addItem(f.getKey());
                 selectBox.setItemCaption(f.getKey(), f.getValue());
@@ -514,11 +516,11 @@ public class DatabaseStreamPanel extends VerticalLayout
         tableLayout.addComponent(table);
         
         PagedTableControls controls = table.createControls();
-        controls.getItemsPerPageLabel().setValue("Items");
-        controls.getBtnFirst().setCaption("First");
-        controls.getBtnLast().setCaption("Last");
-        controls.getBtnNext().setCaption("Next");
-        controls.getBtnPrevious().setCaption("Previous");
+        controls.getItemsPerPageLabel().setValue(tr("label.items"));
+        controls.getBtnFirst().setCaption(tr("action.first"));
+        controls.getBtnLast().setCaption(tr("action.last"));
+        controls.getBtnNext().setCaption(tr("action.next"));
+        controls.getBtnPrevious().setCaption(tr("action.previous"));
         //controls.getPageLabel().setValue("Current:");
         tableLayout.addComponent(controls);
         
@@ -551,7 +553,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         // add FOI column
         if (component.getParent() == null)
         {
-            table.addContainerProperty(FOI_COLUMN_ID, String.class, null, "FOI ID", null, null);
+            table.addContainerProperty(FOI_COLUMN_ID, String.class, null, tr("column.foiId"), null, null);
             
             table.addGeneratedColumn(FOI_COLUMN_ID, new ColumnGenerator() {
                 @Override
@@ -560,7 +562,7 @@ public class DatabaseStreamPanel extends VerticalLayout
                     var foiId = source.getContainerProperty(itemId, columnId).getValue();
                     
                     if ("0000".equals(foiId))
-                        return "None";
+                        return tr("label.none");
                     else if (csApiBaseUrl != null)
                         return new Label("<a href=\"" + csApiBaseUrl + "/fois?id=" + foiId + "\">" + foiId + "</a>", ContentMode.HTML);
                     else

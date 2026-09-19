@@ -14,6 +14,8 @@
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.IEventListener;
@@ -87,7 +89,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         if (!module.getLocalID().startsWith("$$"))
         {
             // apply changes button
-            Button applyButton = new Button("Apply Changes");
+            Button applyButton = new Button(tr("action.applyChanges"));
             applyButton.setIcon(APPLY_ICON);
             applyButton.addStyleName(STYLE_SMALL);
             applyButton.addStyleName("apply-button");
@@ -99,7 +101,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
             configTabs = tabbedConfigForm.configTabs;
             try {
 
-                configTabs.addTab(new ReadmePanel(beanItem), "README");
+                configTabs.addTab(new ReadmePanel(beanItem), tr("section.readme"));
                 addComponent(tabbedConfigForm);
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -124,7 +126,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
                     {
                         beforeUpdateConfig();
                         getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
-                        DisplayUtils.showOperationSuccessful("Module Configuration Updated");
+                        DisplayUtils.showOperationSuccessful(tr("status.configurationUpdated"));
                     }
                 }
                 catch (Exception e)
@@ -244,7 +246,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     protected IModuleConfigForm getConfigForm(MyBeanItem<ModuleConfig> beanItem)
     {
         IModuleConfigForm form = getParentProducer().generateForm(beanItem.getBean().getClass());
-        form.build(GenericConfigForm.MAIN_CONFIG, "General module configuration", (MyBeanItem)beanItem, false);
+        form.build(tr("section.general"), tr("section.general.description"), (MyBeanItem)beanItem, false);
         return form;
     }
 

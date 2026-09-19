@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Timer;
 import java.util.TimerTask;
 import org.sensorhub.api.comm.ICommNetwork;
@@ -77,7 +79,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
         protected void addAvailableNetworks()
         {
             // section title
-            Label sectionLabel = new Label("Available Networks");
+            Label sectionLabel = new Label(tr("section.availableNetworks"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
@@ -89,10 +91,10 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
             table.setSelectable(true);
             table.setImmediate(true);
             table.setColumnReorderingAllowed(false);
-            table.addContainerProperty("Network Type", String.class, null);
-            table.addContainerProperty("Interface Name", String.class, null);
-            table.addContainerProperty("Hardware Address", String.class, null);
-            table.addContainerProperty("Logical Address", String.class, null);
+            table.addContainerProperty(tr("column.networkType"), String.class, null);
+            table.addContainerProperty(tr("column.interfaceName"), String.class, null);
+            table.addContainerProperty(tr("column.hardwareAddress"), String.class, null);
+            table.addContainerProperty(tr("column.logicalAddress"), String.class, null);
 
             int i = 0;
             for (INetworkInfo netInfo: module.getAvailableNetworks())
@@ -112,13 +114,13 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
         protected void addScannedDevicesTable()
         {
             // section title
-            Label sectionLabel = new Label("Detected Devices");
+            Label sectionLabel = new Label(tr("section.detectedDevices"));
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
             
             // scan button
-            scanButton = new Button("Start Scan");
+            scanButton = new Button(tr("action.startScan"));
             scanButton.setIcon(REFRESH_ICON);
             scanButton.addStyleName("scan-button");
             scanButton.setEnabled(module.isStarted());
@@ -137,6 +139,11 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
             deviceTable.addContainerProperty(PROP_SIG_LEVEL, String.class, null);
             deviceTable.addContainerProperty(DEV_INFO_OBJ, IDeviceInfo.class, null);
             deviceTable.setVisibleColumns(PROP_NAME, PROP_TYPE, PROP_ADDRESS, PROP_SIG_LEVEL);
+            deviceTable.setColumnHeaders(
+                tr("column.name"),
+                tr("column.type"),
+                tr("column.address"),
+                tr("column.signalLevel"));
             
             // scan button handler
             scanButton.addClickListener(new Button.ClickListener() {
@@ -145,7 +152,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                 {
                     if (!module.getDeviceScanner().isScanning())
                     {
-                        scanButton.setCaption("Stop Scan");
+                        scanButton.setCaption(tr("action.stopScan"));
                         deviceTable.removeAllItems();
                         
                         new Thread() {
@@ -188,7 +195,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                                     @Override
                                     public void onScanError(final Throwable e)
                                     {
-                                        final String msg = "Error during device scan";
+                                        final String msg = tr("error.deviceScan");
                                         
                                         final UI ui = NetworkScanPanel.this.getUI();
                                         if (ui != null)
@@ -197,7 +204,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                                                 @Override
                                                 public void run() {
                                                     
-                                                    new Notification("Error", msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE).show(ui.getPage());
+                                                    new Notification(tr("error.title"), msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE).show(ui.getPage());
                                                 }
                                             });
                                         }              
@@ -240,7 +247,7 @@ public class NetworkAdminPanel extends DefaultModulePanel<ICommNetwork<?>> imple
                 ui.access(new Runnable() {
                     @Override
                     public void run() {
-                        scanButton.setCaption("Start Scan");
+                        scanButton.setCaption(tr("action.startScan"));
                         ui.push();
                     }
                 });

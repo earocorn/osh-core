@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -49,9 +51,9 @@ import com.vaadin.v7.ui.Table.ColumnHeaderMode;
 @SuppressWarnings("serial")
 public class BasicSecurityConfigForm extends GenericConfigForm
 {
-    private static final Action ALLOW_ACTION = new Action("Allow", FontAwesome.CHECK);
-    private static final Action DENY_ACTION = new Action("Deny", FontAwesome.BAN);
-    private static final Action CLEAR_ACTION = new Action("Clear", FontAwesome.TIMES);
+    private final Action allowAction = new Action(tr("action.allow"), FontAwesome.CHECK);
+    private final Action denyAction = new Action(tr("action.deny"), FontAwesome.BAN);
+    private final Action clearAction = new Action(tr("action.clear"), FontAwesome.TIMES);
     
     protected static final String PROP_USER_ROLES = "users.roles";
     protected static final String PROP_ALLOW_LIST = ".allow";
@@ -99,8 +101,8 @@ public class BasicSecurityConfigForm extends GenericConfigForm
             HorizontalLayout layout = new HorizontalLayout();
             layout.setWidth(100.0f, Unit.PERCENTAGE);
             layout.setSpacing(true);
-            layout.setCaption("Permissions");
-            layout.setDescription("Allowed and denied permissions for users with this role");
+            layout.setCaption(tr("section.permissions"));
+            layout.setDescription(tr("section.permissions.description"));
             
             // permission table
             buildTable(layout);
@@ -133,8 +135,8 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         table.addContainerProperty(PROP_PERMISSION, IPermission.class, null);
         table.addContainerProperty(PROP_STATE, PermState.class, PermState.UNSET);
         table.setColumnHeaderMode(ColumnHeaderMode.EXPLICIT_DEFAULTS_ID);
-        table.setColumnHeader(PROP_PERMISSION, "Permission Name");
-        table.setColumnHeader(PROP_STATE, "Allow/Deny");
+        table.setColumnHeader(PROP_PERMISSION, tr("section.permissionName"));
+        table.setColumnHeader(PROP_STATE, tr("section.allowDeny"));
         
         // cell converter for name
         table.setConverter(PROP_PERMISSION, new Converter<String, IPermission>() {
@@ -183,15 +185,15 @@ public class BasicSecurityConfigForm extends GenericConfigForm
                 {
                     case ALLOW:
                     case INHERIT_ALLOW:
-                        return "Allow";
+                        return tr("action.allow");
                         
                     case DENY:
                     case INHERIT_DENY:
-                        return "Deny";
+                        return tr("action.deny");
                         
                     case UNSET:
                     default:
-                        return "Deny (Default)";
+                        return tr("permission.denyDefault");
                 }
             }
 
@@ -253,20 +255,20 @@ public class BasicSecurityConfigForm extends GenericConfigForm
                     
                     if (state == PermState.ALLOW)
                     {
-                        actions.add(CLEAR_ACTION);
-                        actions.add(DENY_ACTION);
+                        actions.add(clearAction);
+                        actions.add(denyAction);
                     }
                     
                     else if (state == PermState.DENY)
                     {
-                        actions.add(CLEAR_ACTION);
-                        actions.add(ALLOW_ACTION);
+                        actions.add(clearAction);
+                        actions.add(allowAction);
                     }
                     
                     else
                     {
-                        actions.add(ALLOW_ACTION);
-                        actions.add(DENY_ACTION);
+                        actions.add(allowAction);
+                        actions.add(denyAction);
                     }
                 }
                 
@@ -282,17 +284,17 @@ public class BasicSecurityConfigForm extends GenericConfigForm
                 {
                     String permPath = getPermissionPath(selectedId);
                     
-                    if (action == ALLOW_ACTION)
+                    if (action == allowAction)
                     {                            
                         permConfig.allow.add(permPath);
                         permConfig.deny.remove(permPath);
                     }
-                    else if (action == DENY_ACTION)
+                    else if (action == denyAction)
                     {                            
                         permConfig.deny.add(permPath);
                         permConfig.allow.remove(permPath);
                     }
-                    else if (action == CLEAR_ACTION)
+                    else if (action == clearAction)
                     {
                         permConfig.allow.remove(permPath);
                         permConfig.deny.remove(permPath);

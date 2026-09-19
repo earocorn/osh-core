@@ -14,6 +14,8 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import org.sensorhub.ui.api.IModuleConfigForm;
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.AbstractComponent;
@@ -37,7 +39,7 @@ public class TabbedConfigForms extends VerticalLayout implements UIConstants
         setSpacing(false);
         setWidth(100.0f, Unit.PERCENTAGE);
         
-        Label sectionLabel = new Label("Configuration");
+        Label sectionLabel = new Label(tr("section.configuration"));
         sectionLabel.addStyleName(STYLE_H3);
         sectionLabel.addStyleName(STYLE_COLORED);
         addComponent(sectionLabel);

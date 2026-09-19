@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.ui.data.BaseProperty;
@@ -46,7 +48,7 @@ public class SPSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("System Tasking", Class.forName(SPS_PACKAGE + "SystemTaskingConnectorConfig"));
+                classList.put(tr("option.systemTasking"), Class.forName(SPS_PACKAGE + "SystemTaskingConnectorConfig"));
             }
             catch (ClassNotFoundException e)
             {

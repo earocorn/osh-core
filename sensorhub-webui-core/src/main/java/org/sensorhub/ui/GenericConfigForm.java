@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.lang.reflect.ParameterizedType;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -48,7 +50,6 @@ import org.sensorhub.ui.data.BaseProperty;
 import org.sensorhub.ui.data.BeanUtils;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.ContainerProperty;
-import org.sensorhub.ui.data.FieldProperty;
 import org.sensorhub.ui.data.MapProperty;
 import org.sensorhub.ui.data.MyBeanItem;
 import org.sensorhub.ui.data.MyBeanItemContainer;
@@ -113,9 +114,6 @@ import com.vaadin.ui.Button.ClickEvent;
 public class GenericConfigForm extends VerticalLayout implements IModuleConfigForm, UIConstants
 {
     private static final String FIELD_GEN_ERROR = "Cannot generate UI field for ";
-    private static final String ADD_ITEM_ERROR = "Cannot add new item to ";
-    private static final String CHANGE_OBJECT_ERROR = "Cannot change object type of ";
-    protected static final String OPTION_SELECT_MSG = "Please select the desired item";
     protected static final String MAIN_CONFIG = "General";
     protected static final String ADD_BUTTON_TAB_ID = "$ADD$";
     
@@ -135,11 +133,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     @Override
     public void build(String propId, ComplexProperty prop, boolean includeSubForms)
     {
-        String title = prop.getLabel();
-        if (title == null)
-            title = DisplayUtils.getPrettyName(propId);
-        
-        build(title, prop.getDescription(), prop.getValue(), includeSubForms);
+        String title = getPropertyLabel(propId, prop);
+        build(title, getPropertyDescription(prop), prop.getValue(), includeSubForms);
     }
     
     
@@ -196,15 +191,12 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     
                     try
                     {
-                        String label = null;
-                        if (prop instanceof FieldProperty)
-                            label = ((FieldProperty)prop).getLabel();
-                        if (label == null)
-                            label = DisplayUtils.getPrettyName((String)propId);
-                        
-                        String desc = null;
-                        if (prop instanceof FieldProperty)
-                            desc = ((FieldProperty)prop).getDescription();
+                        String label = prop instanceof BaseProperty ?
+                            getPropertyLabel((String)propId, (BaseProperty<?>)prop) :
+                            DisplayUtils.getPrettyName((String)propId);
+
+                        String desc = prop instanceof BaseProperty ?
+                            getPropertyDescription((BaseProperty<?>)prop) : null;
                         
                         field = buildAndBindField(label, (String)propId, prop);
                         if (field == null)
@@ -278,6 +270,28 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     {
         return true;
     }
+
+
+    protected String getPropertyLabel(String propId, BaseProperty<?> prop)
+    {
+        String fallback = prop.getLabel();
+        if (fallback == null)
+            fallback = DisplayUtils.getPrettyName(propId);
+
+        return AdminI18n.trConfig(
+            prop.getDeclaringClass(),
+            prop.getFieldName() + ".label",
+            fallback);
+    }
+
+
+    protected String getPropertyDescription(BaseProperty<?> prop)
+    {
+        return AdminI18n.trConfig(
+            prop.getDeclaringClass(),
+            prop.getFieldName() + ".description",
+            prop.getDescription());
+    }
     
     
     /**
@@ -347,7 +361,16 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         }
         else if (Enum.class.isAssignableFrom(propType))
         {
-            ((ListSelect)field).setRows(3);
+            ListSelect listSelect = (ListSelect)field;
+            listSelect.setRows(3);
+            for (Object enumValue: propType.getEnumConstants())
+            {
+                String caption = AdminI18n.trConfig(
+                    propType,
+                    "value." + ((Enum<?>)enumValue).name(),
+                    enumValue.toString());
+                listSelect.setItemCaption(enumValue, caption);
+            }
             field.setWidth(200, Unit.PIXELS);
         }
         
@@ -406,16 +429,16 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             if (advProp.isRequired())
             {
                 if (propType.equals(String.class))
-                    field.addValidator(new StringLengthValidator(MSG_REQUIRED_FIELD, 1, Integer.MAX_VALUE, false));
+                    field.addValidator(new StringLengthValidator(tr("validation.required"), 1, Integer.MAX_VALUE, false));
                 else if (propType.equals(int.class) || propType.equals(Integer.class))
-                    field.addValidator(new IntegerRangeValidator(MSG_REQUIRED_FIELD, Integer.MIN_VALUE, Integer.MAX_VALUE));
+                    field.addValidator(new IntegerRangeValidator(tr("validation.required"), Integer.MIN_VALUE, Integer.MAX_VALUE));
             }
                 
             // valid range
             ValueRange range = advProp.getValueRange();
             if (range != null)
             {
-                String msg = String.format("Value should be within [%d - %d] range", range.min(), range.max());
+                String msg = tr("validation.range", range.min(), range.max());
                 field.addValidator(new IntegerRangeValidator(msg, (int)range.min(), (int)range.max()));
             }
         }
@@ -441,7 +464,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
 
                 // select system button
                 Button selectBtn = new Button(FontAwesome.SEARCH);
-                selectBtn.setDescription("Lookup System");
+                selectBtn.setDescription(tr("action.lookupSystem"));
                 selectBtn.addStyleName(STYLE_QUIET);
                 layout.addComponent(selectBtn);
                 layout.setComponentAlignment(selectBtn, Alignment.MIDDLE_LEFT);
@@ -484,7 +507,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 
                 // select module button
                 Button selectBtn = new Button(FontAwesome.SEARCH);
-                selectBtn.setDescription("Lookup Module");
+                selectBtn.setDescription(tr("action.lookupModule"));
                 selectBtn.addStyleName(STYLE_QUIET);
                 layout.addComponent(selectBtn);
                 layout.setComponentAlignment(selectBtn, Alignment.MIDDLE_LEFT);
@@ -529,7 +552,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 
                 // select module button
                 Button selectBtn = new Button(FontAwesome.SEARCH);
-                selectBtn.setDescription("Lookup Address");
+                selectBtn.setDescription(tr("action.lookupAddress"));
                 selectBtn.addStyleName(STYLE_QUIET);
                 layout.addComponent(selectBtn);
                 layout.setComponentAlignment(selectBtn, Alignment.MIDDLE_LEFT);
@@ -550,7 +573,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         }
                         if (!netAvailable)
                         {
-                            DisplayUtils.showErrorPopup("No network scanner available for " + addressType + " address lookup", null);
+                            DisplayUtils.showErrorPopup(tr("error.noNetworkScanner", addressType), null);
                             return;
                         }
                         
@@ -599,7 +622,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 // show/hide button
                 final Button showBtn = new Button(FontAwesome.EYE);
                 showBtn.addStyleName(STYLE_QUIET);
-                showBtn.setDescription("Show Password");
+                showBtn.setDescription(tr("action.showPassword"));
                 showBtn.setData(false);
                 layout.addComponent(showBtn);
                 layout.setComponentAlignment(showBtn, Alignment.MIDDLE_LEFT);
@@ -673,9 +696,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         chgButton.addStyleName(STYLE_SECTION_BUTTONS);
         chgButton.setIcon(EDIT_ICON);
         if (prop.getValue() == null)
-            chgButton.setCaption("Add");
+            chgButton.setCaption(tr("action.add"));
         else
-            chgButton.setCaption("Modify");
+            chgButton.setCaption(tr("action.modify"));
         
         chgButton.addClickListener(new ClickListener() {
             @Override
@@ -696,7 +719,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         }
                         catch (Exception e)
                         {
-                            DisplayUtils.showErrorPopup(CHANGE_OBJECT_ERROR + propId, e);
+                            DisplayUtils.showErrorPopup(tr("error.changeObject", propId), e);
                         }
                     }
 
@@ -725,9 +748,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         chgButton.addStyleName(STYLE_SECTION_BUTTONS);
         chgButton.setIcon(EDIT_ICON);
         if (prop.getValue() == null)
-            chgButton.setCaption("Add");
+            chgButton.setCaption(tr("action.add"));
         else
-            chgButton.setCaption("Modify");
+            chgButton.setCaption(tr("action.modify"));
                 
         // show popup to select among available module types
         final ObjectTypeSelectionWithClearCallback callback = new ObjectTypeSelectionWithClearCallback() {
@@ -743,7 +766,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 }
                 catch (Exception e)
                 {
-                    DisplayUtils.showErrorPopup(CHANGE_OBJECT_ERROR + propId, e);
+                    DisplayUtils.showErrorPopup(tr("error.changeObject", propId), e);
                 }
             }
 
@@ -762,7 +785,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 // don't display remove button if value is required
                 if (prop.isRequired())
                     return;
-                chgButton.setCaption("Remove");
+                chgButton.setCaption(tr("action.remove"));
             }   
             
             chgButton.addClickListener(new ClickListener() {
@@ -794,7 +817,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 public void buttonClick(ClickEvent event)
                 {
                     // we popup the list so the user can select what he wants
-                    ObjectTypeSelectionPopup popup = new ObjectTypeSelectionPopup(OPTION_SELECT_MSG, typeList, callback);
+                    ObjectTypeSelectionPopup popup = new ObjectTypeSelectionPopup(tr("dialog.selectDesiredItem"), typeList, callback);
                     popup.setModal(true);
                     getUI().addWindow(popup);
                 }
@@ -869,9 +892,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     @SuppressWarnings("unchecked")
     protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType, final Consumer<ValueCallback> valueProvider)
     {
-        String label = prop.getLabel();
-        if (label == null)
-            label = DisplayUtils.getPrettyName((String)propId);
+        String label = getPropertyLabel(propId, prop);
         
         final MyBeanItemContainer<Object> container = prop.getValue();
         final ListSelect listBox = new ListSelect(label, container);
@@ -880,7 +901,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         listBox.setImmediate(true);
         listBox.setBuffered(true);
         listBox.setNullSelectionAllowed(false);
-        listBox.setDescription(prop.getDescription());
+        listBox.setDescription(getPropertyDescription(prop));
         //listBox.setWidth(250, Unit.PIXELS);
         listBox.addStyleName(UIConstants.STYLE_SMALL);
         listBox.setRows(Math.max(2, Math.min(5, container.size())));
@@ -1032,7 +1053,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                     }
                                     catch (Exception e)
                                     {
-                                        DisplayUtils.showErrorPopup(ADD_ITEM_ERROR + propId, e);
+                                        DisplayUtils.showErrorPopup(tr("error.addItem", propId), e);
                                     }
                                 }
                             };
@@ -1051,14 +1072,14 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                             else
                             {
                                 // we popup the list so the user can select what he wants
-                                ObjectTypeSelectionPopup popup = new ObjectTypeSelectionPopup(OPTION_SELECT_MSG, typeList, callback);
+                                ObjectTypeSelectionPopup popup = new ObjectTypeSelectionPopup(tr("dialog.selectDesiredItem"), typeList, callback);
                                 popup.setModal(true);
                                 getUI().addWindow(popup);
                             }
                         }
                         catch (Exception e)
                         {
-                            DisplayUtils.showErrorPopup(ADD_ITEM_ERROR + propId, e);
+                            DisplayUtils.showErrorPopup(tr("error.addItem", propId), e);
                         }
                     }
                 });
@@ -1090,11 +1111,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         };
         
         // set title and popup
-        String title = prop.getLabel();
-        if (title == null)
-            title = DisplayUtils.getPrettyName((String)propId);
+        String title = getPropertyLabel(propId, prop);
         wrapper.setCaption(title);
-        wrapper.setDescription(prop.getDescription());
+        wrapper.setDescription(getPropertyDescription(prop));
         
         return wrapper;
     }
@@ -1107,11 +1126,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         layout.setWidth(100.0f, Unit.PERCENTAGE);
         
         // set title and popup
-        String title = prop.getLabel();
-        if (title == null)
-            title = DisplayUtils.getPrettyName((String)propId);
+        String title = getPropertyLabel(propId, prop);
         layout.setCaption(title);
-        layout.setDescription(prop.getDescription());
+        layout.setDescription(getPropertyDescription(prop));
         
         // create one tab per item in container
         final MyBeanItemContainer<Object> container = prop.getValue();
@@ -1144,7 +1161,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             {
                 final Tab tab = tabs.getTab(tabContent);
                 
-                final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to delete " + tab.getCaption() + "?</br>All settings will be lost.");
+                final ConfirmDialog popup = new ConfirmDialog(tr("dialog.deleteTab", tab.getCaption()));
                 popup.addCloseListener(new CloseListener() {
                     private static final long serialVersionUID = 1L;
                     @Override
@@ -1217,7 +1234,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                     }
                                     catch (Exception e)
                                     {
-                                        DisplayUtils.showErrorPopup(ADD_ITEM_ERROR + propId, e);
+                                        DisplayUtils.showErrorPopup(tr("error.addItem", propId), e);
                                     }
                                 }
                             };
@@ -1256,7 +1273,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                     }
                                     catch (Exception e)
                                     {
-                                        DisplayUtils.showErrorPopup(ADD_ITEM_ERROR + propId, e);
+                                        DisplayUtils.showErrorPopup(tr("error.addItem", propId), e);
                                     }
                                 }
                             };
@@ -1275,7 +1292,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                             else
                             {
                                 // we popup the list so the user can select what he wants
-                                String title = "Please select the desired option";
+                                String title = tr("dialog.selectDesiredOption");
                                 var popup = new ObjectTypeSelectionPopup(title, typeList, callback);
                                 popup.setModal(true);
                                 getUI().addWindow(popup);
@@ -1284,7 +1301,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     }
                     catch (Exception e)
                     {
-                        DisplayUtils.showErrorPopup(ADD_ITEM_ERROR + propId, e);
+                        DisplayUtils.showErrorPopup(tr("error.addItem", propId), e);
                     }
                 }
                 
@@ -1357,7 +1374,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         if (beanItemId != null)
             return beanItemId;
         
-        return "Item " + (tabIndex+1);
+        return tr("label.item", tabIndex+1);
     }
     
     

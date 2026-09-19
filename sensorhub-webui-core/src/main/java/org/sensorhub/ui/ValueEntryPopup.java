@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.Collection;
 import com.vaadin.v7.data.Property.ValueChangeEvent;
 import com.vaadin.v7.data.Property.ValueChangeListener;
@@ -36,7 +38,7 @@ public class ValueEntryPopup extends Window
     
     public ValueEntryPopup(int width, final ValueCallback callback, final Collection<?> possibleValues)
     {
-        super("Enter New Value");
+        super(tr("dialog.enterValue"));
         VerticalLayout layout = new VerticalLayout();
         layout.setMargin(true);
         

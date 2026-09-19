@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import static org.sensorhub.ui.AdminI18n.tr;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.ui.data.BaseProperty;
@@ -46,8 +48,8 @@ public class SOSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("Streaming Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
-                classList.put("Historical Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
+                classList.put(tr("option.streamingDataSource"), Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
+                classList.put(tr("option.historicalDataSource"), Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
             }
             catch (ClassNotFoundException e)
             {
