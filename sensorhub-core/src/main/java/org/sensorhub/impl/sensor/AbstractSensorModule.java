@@ -52,6 +52,7 @@ import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
+import org.sensorhub.utils.IdentificationInfoUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingPoint;
@@ -165,6 +166,13 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
             this.randomUniqueID = true;
         }
         
+        if (config.identificationInfo != null)
+        {
+            OshAsserts.checkValidUID(config.identificationInfo.systemUID);
+            this.uniqueID = config.identificationInfo.systemUID;
+            this.randomUniqueID = false;
+        }
+
         // set last description update time if provided in config
         if (config.lastUpdated != null)
             this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
@@ -203,6 +211,14 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 addOrientationOutput(Double.NaN);
         }
         
+        if (config.identificationInfo != null)
+        {
+            synchronized (sensorDescLock)
+            {
+                IdentificationInfoUtils.apply(config.identificationInfo, getCurrentDescription());
+            }
+        }
+
         super.afterInit();
     }
     
@@ -542,6 +558,8 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 sensorDescription.setId(xmlID);
             if (!sensorDescription.isSetIdentifier())
                 sensorDescription.setUniqueIdentifier(uniqueID);
+
+            IdentificationInfoUtils.apply(config.identificationInfo, sensorDescription);
 
             // name & description
             sensorDescription.setDefinition(SWEConstants.DEF_SENSOR);
