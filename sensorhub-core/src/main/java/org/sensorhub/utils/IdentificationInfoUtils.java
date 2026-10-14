@@ -58,10 +58,13 @@ public final class IdentificationInfoUtils
             contact.setIndividualName(party.getIndividualName());
             contact.setOrganisationName(party.getOrganizationName());
             contact.setPositionName(party.getPositionName());
-            if (party.getRole() != null)
+            if (party.getRole() != null && !party.getRole().isBlank())
             {
                 var role = new CodeListValueImpl(party.getRole());
-                role.setCodeList(party.getRoleCodeList());
+                var codeList = party.getRoleCodeList();
+                role.setCodeList(codeList == null || codeList.isBlank()
+                    ? "http://www.isotc211.org/2005/resources/codeList.xml#CI_RoleCode"
+                    : codeList);
                 role.setCodeListValue(party.getRole());
                 contact.setRole(role);
             }

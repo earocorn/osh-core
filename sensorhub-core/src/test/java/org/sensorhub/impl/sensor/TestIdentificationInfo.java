@@ -41,4 +41,30 @@ public class TestIdentificationInfo
             sensor.updateSensorDescription();
         }
     }
+    @Test
+    public void rolesSerializeWithOptionalCodeList() throws Exception
+    {
+        for (String codeList : new String[] {null, "", "urn:test:roles"})
+        {
+            var info = new IdentificationInfo();
+            info.systemUID = "urn:test:configured";
+            var party = new ResponsibleParty();
+            party.setRole("operator");
+            party.setRoleCodeList(codeList);
+            info.responsibleParties = List.of(party);
+            var description = new org.vast.sensorML.PhysicalSystemImpl();
+            org.sensorhub.utils.IdentificationInfoUtils.apply(info, description);
+
+            var output = new java.io.StringWriter();
+            var writer = new com.ctc.wstx.stax.WstxOutputFactory().createXMLStreamWriter(output);
+            var bindings = new org.vast.sensorML.SMLStaxBindings();
+            bindings.setNamespacePrefixes(writer);
+            bindings.declareNamespacesOnRootElement();
+            bindings.writeDescribedObject(writer, description);
+            writer.close();
+            assertTrue(output.toString().contains("codeListValue=\"operator\""));
+            assertTrue(output.toString().contains(codeList == null || codeList.isBlank()
+                ? "codeList.xml#CI_RoleCode" : codeList));
+        }
+    }
 }
