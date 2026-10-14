@@ -28,7 +28,7 @@ public class IdentificationInfo {
     @DisplayInfo(label = "System Kind UID", desc = "Optional field overrides this resource's system kind/type UID")
     public String systemKindUID;
 
-    @DisplayInfo(label = "Responsible Parties", desc = "Contact/business information of system/device operators")
+    @DisplayInfo(label = "Responsible Parties", desc = "Contact/business information of system/device operators and technical support")
     public Collection<ResponsibleParty> responsibleParties;
 
 }
